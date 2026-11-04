@@ -67,6 +67,7 @@ Each verdict has `status` (`found`, `badlink`, `mismatch`, `notfound`, `approx-o
 | `keys: { openalex }` | OpenAlex now gives each address a small daily budget. A free key from openalex.org lifts it. Sent to OpenAlex only. |
 | `sources` | Replace or extend where it looks. A source is `{ name, search(query, http, ctx) }`. |
 | `cache` | Any `{ get, set }` store (Lodestone's stores fit). Default: in memory, one day. "Unavailable" is never cached. |
+| `maxCitations` | The most citations checked in one call (default 50). Each costs up to three requests to free, shared services; a text with thousands must not become thousands of requests. The rest come back as `limit` (bucket `check`). |
 | `concurrency`, `timeoutMs`, `retryDelayMs` | Polite by default: 4 requests at once, 8 s each, one retry after a 429. |
 | `fetch` | Your own `fetch`. |
 
@@ -94,5 +95,11 @@ and nothing is logged.
 
 Extracted from [Whetstone](https://whetstone.extrafemi.com), where it runs under every reply, and built to sit next to
 [Lodestone](https://github.com/obasaolorunfemi-ai/lodestone): Lodestone keeps the model call working, Assay checks what came back.
+
+## Releases
+
+Bump `version` in `package.json`, commit, then push a tag that matches it (`git tag v0.1.0 && git push --tags`). The release workflow waits for a
+human to approve in the `npm-publish` environment, runs the type check, tests and build, and publishes with npm trusted publishing and
+provenance. No npm token is stored anywhere.
 
 MIT. See [CHANGELOG](CHANGELOG.md) and [SECURITY](SECURITY.md).

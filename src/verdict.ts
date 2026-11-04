@@ -6,7 +6,7 @@ export function bucketOf(status: Status, exact: boolean | undefined, notes: stri
   switch (status) {
     case 'found': return exact === false || notes.length ? 'check' : 'ok';
     case 'badlink': case 'mismatch': case 'notfound': case 'approx-none': return 'failed';
-    case 'approx-ok': case 'approx-unparsed': case 'no-title': case 'unavailable': return 'check';
+    case 'approx-ok': case 'approx-unparsed': case 'no-title': case 'unavailable': case 'limit': return 'check';
     default: return 'skip';
   }
 }
@@ -30,6 +30,7 @@ export function messageFor(v: Pick<Verdict, 'status' | 'source' | 'exact' | 'mat
     case 'approx-none': return 'Approximate: no work by this author on this topic was found. Verify before relying on it.';
     case 'approx-unparsed': return 'Approximate: could not tell whose work or what topic.';
     case 'no-title': return 'No title was given, so there is nothing to confirm.';
+    case 'limit': return 'Not checked: this text has more citations than the limit for one check, so the rest were left alone rather than sent to the free services.';
     case 'unavailable': return 'The citation sources were unreachable or throttled. This says nothing about the citation; try again later.';
     default: return '';
   }

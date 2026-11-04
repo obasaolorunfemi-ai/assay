@@ -2,7 +2,7 @@ import type { Citation, KeyValueStore, Report, Verdict } from './types.js';
 import { makeHttp } from './http.js';
 import { parseCitations } from './parse.js';
 import { defaultSources, type SearchSource } from './sources.js';
-import { summarize } from './verdict.js';
+import { bucketOf, messageFor, summarize } from './verdict.js';
 import { verifyCitation } from './verify.js';
 
 export interface AssayOptions {
@@ -25,6 +25,8 @@ export interface AssayOptions {
   timeoutMs?: number;
   /** How long to wait before the one retry after a 429 or 503. Default 1.2 seconds (or the source's Retry-After, up to 3). */
   retryDelayMs?: number;
+  /** The most citations checked in one call. Each costs up to three requests to free, shared services, so a text with thousands (from a model, or from a user) must not be able to turn Assay into a way of hammering them. The rest come back as `limit` (bucket `check`). Default 50. */
+  maxCitations?: number;
   /** Requests at once, across all citations. Default 4: the sources are free and shared, so this is polite by default. */
   concurrency?: number;
 }
@@ -46,6 +48,11 @@ function memoryStore(): KeyValueStore {
   };
 }
 
+function overLimit(c: Citation): Verdict {
+  const v = { status: 'limit' as const, notes: [] as string[] };
+  return { citation: c, ...v, bucket: bucketOf(v.status, undefined, v.notes), message: messageFor(v, []) };
+}
+
 export function createAssay(opts: AssayOptions = {}): Assay {
   const ctx = {
     http: makeHttp({ fetch: opts.fetch, timeoutMs: opts.timeoutMs, concurrency: opts.concurrency, retryDelayMs: opts.retryDelayMs }),
@@ -55,8 +62,9 @@ export function createAssay(opts: AssayOptions = {}): Assay {
     cache: opts.cache ?? memoryStore(),
     cacheTtlMs: opts.cacheTtlMs ?? 86_400_000,
   };
+  const maxCitations = Math.max(1, Math.floor(opts.maxCitations ?? 50));
   const verify = async (citations: Citation[]): Promise<Report> => {
-    const verdicts: Verdict[] = await Promise.all(citations.map((c) => verifyCitation(c, ctx)));
+    const verdicts: Verdict[] = await Promise.all(citations.map((c, i) => i < maxCitations ? verifyCitation(c, ctx) : Promise.resolve(overLimit(c))));
     const summary = summarize(verdicts);
     return { verdicts, summary, ok: summary.failed === 0 };
   };

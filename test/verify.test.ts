@@ -170,6 +170,24 @@ describe('approximate citations', () => {
   });
 });
 
+describe('a text with a flood of citations', () => {
+  it('checks only the first maxCitations and sends no requests for the rest', async () => {
+    const net = router({ 'api.crossref.org/works?query': cr(), 'api.openalex.org': oa() });
+    const text = Array.from({ length: 500 }, (_, i) => `[Author${i}, 2001, "A Distinct Title Number ${i} About Things" — J]`).join(' ');
+    const rep = await createAssay({ fetch: net.fetch, retryDelayMs: 0, maxCitations: 5 }).check(text);
+    expect(rep.verdicts).toHaveLength(500);
+    expect(rep.verdicts.filter((v) => v.status === 'limit')).toHaveLength(495);
+    expect(rep.verdicts.filter((v) => v.status === 'limit').every((v) => v.bucket === 'check')).toBe(true);
+    expect(net.calls.length).toBeLessThanOrEqual(5 * 4);   // at most three searches and a link check each, for five citations
+  });
+  it('defaults to 50, so a text of thousands cannot become thousands of requests', async () => {
+    const net = router({ 'api.crossref.org/works?query': cr(), 'api.openalex.org': oa() });
+    const text = Array.from({ length: 5000 }, (_, i) => `[Author${i}, 2001, "A Distinct Title Number ${i} About Things" — J]`).join(' ');
+    await createAssay({ fetch: net.fetch, retryDelayMs: 0 }).check(text);
+    expect(net.calls.length).toBeLessThanOrEqual(50 * 4);
+  });
+});
+
 describe('the cache and the options', () => {
   it('asks about a citation once', async () => {
     const net = router({ 'api.crossref.org/works?query': cr(REAL) });

@@ -32,6 +32,7 @@ export type Status =
   | 'approx-unparsed'// approximate: could not tell whose work or what topic
   | 'no-title'       // no title was given, so there is nothing to confirm
   | 'unavailable'    // every source was unreachable or throttled: inconclusive, never "not found"
+  | 'limit'          // not checked: the text had more citations than `maxCitations`
   | 'skip';          // no author could be read; nothing useful to say
 
 /** How much trust a status earns. `failed` means: do not rely on it. */

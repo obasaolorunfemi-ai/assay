@@ -14,4 +14,5 @@ First release, extracted from Whetstone's citation checker.
 - Approximate citations are checked for related work by that author.
 - A source that is throttled or down makes the result `unavailable`, never `notfound`. One polite retry after a 429.
 - `strip()` replaces, removes or marks failed citations.
-- Options: `mailto`, `keys.openalex`, `sources`, `cache`, `concurrency`, `timeoutMs`, `retryDelayMs`, `fetch`.
+- `maxCitations` (default 50): a text with thousands of citations is checked up to the limit, and the rest are returned as `limit` without a request. Measured before the cap: 5,000 distinct citations caused 15,000 outbound requests.
+- Options: `mailto`, `keys.openalex`, `maxCitations`, `sources`, `cache`, `concurrency`, `timeoutMs`, `retryDelayMs`, `fetch`.
