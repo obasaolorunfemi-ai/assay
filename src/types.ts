@@ -66,6 +66,12 @@ export interface Verdict {
   linkState?: 'dead' | 'wrong';
   /** One sentence, in plain words, saying what was found. */
   message: string;
+  /** True when the result is inconclusive for a reason that will pass (a source down or throttled, a limit): checking again later may settle it. `recheck()` does that. */
+  retryable: boolean;
+  /** True when this is an earlier answer, served because the sources could not be reached now. */
+  stale?: boolean;
+  /** Why a result is `unavailable`, in a few words. */
+  reason?: string;
   /** For `badlink`: the DOI of the closest record, as a fix to offer. */
   suggestedDoi?: string;
 }
