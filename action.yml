@@ -1,0 +1,35 @@
+name: Assay check
+description: Check AI-written text in your repository against evidence: quotes, figures, grounding, citations, retractions or links. The job fails when something fails.
+author: Extrafemi
+inputs:
+  command:
+    description: One of quotes, figures, grounding, citations, retractions, links.
+    required: true
+  args:
+    description: Arguments for that check, separated by spaces (use files, not quoted text, for anything with spaces). For example "--draft docs/post.md --materials docs/brief.md".
+    required: true
+  version:
+    description: The @extrafemi-ai/assay version to run. Pin it.
+    required: false
+    default: '0.4.0'
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      with:
+        node-version: 22
+    - name: Run the check
+      shell: bash
+      # Inputs go in through the environment, never spliced into the script, so a crafted input cannot inject commands.
+      env:
+        ASSAY_COMMAND: ${{ inputs.command }}
+        ASSAY_ARGS: ${{ inputs.args }}
+        ASSAY_VERSION: ${{ inputs.version }}
+      run: |
+        set -f
+        case "$ASSAY_COMMAND" in quotes|figures|grounding|citations|retractions|links) ;; *) echo "unknown check: $ASSAY_COMMAND" >&2; exit 2 ;; esac
+        # shellcheck disable=SC2086
+        npx --yes "@extrafemi-ai/assay@${ASSAY_VERSION}" "$ASSAY_COMMAND" $ASSAY_ARGS
+branding:
+  icon: check-circle
+  color: green

@@ -2,6 +2,24 @@
 
 Versions before 1.0 may change between minor releases; each change that could break a caller is marked **breaking**.
 
+## 0.4.0
+
+New checks and tools for the gaps the first release named.
+
+- **`/support`**: does the source text actually back the sentence? You supply the judge (a model call); Assay verifies the evidence the judge quotes with the quotes check, fails a claim whose figure is not in the source without asking the judge, and by default never counts a model's reading as `ok`.
+- **`/retractions`**: asks Crossref (which includes the Retraction Watch database) whether a paper was retracted, withdrawn, corrected or has an expression of concern. Verified live against a known retracted paper.
+- **`/legal`** (server-only): checks US case citations against CourtListener's citation-lookup API and catches a real citation attached to the wrong case. Built from the API reference; no live call with a token has been made.
+- **`/review`**: any report as one self-contained, escaped HTML page for a person to read, worst first. **`/loop`** (`improve`): ask the model again with what failed, bounded.
+- **`assay` command line** and a **GitHub Action**.
+- **More sources**: `pubmed` (verified live) and `semanticscholar` (not verified live) for citations; `eurostat` for values (verified live). All opt in.
+- **Fixed: a title with markup no longer reads as a different title.** CrossRef sends some titles with markup and line breaks (`<scp>AI</scp>`), which made a real, correctly cited paper come back as "the title differs". Found by running Assay on the reference lists of its own technical papers. Titles from CrossRef and OpenAlex are now compared as words.
+- **`jsonSource`**: add a citation source with data (an https address, where the records and fields are, a required canary) instead of code. Refuses a description with no canary, a non-https address or a host filled from the search words.
+- **`assay health`** asks every built-in source for a work it must know; a weekly workflow runs it and opens an issue when a source answers wrongly. The README now says plainly which safeguards regulate themselves at run time and which things only a person can update.
+- **`/tally`**: count what your own app's checks have caught (`createTally().add('quotes', report)`), keeping only numbers, never text. Assay itself still counts nothing and sends nothing.
+- **`assay legal FILE`**, with the CourtListener token read from the `COURTLISTENER_TOKEN` environment variable only. README says where the token goes on each platform.
+- `Http.json` can now send a header or a POST (used by CourtListener and Semantic Scholar).
+- A benchmark protocol (`docs/benchmark-protocol.md`) and instruments for building one with independent labellers: a blind sheet, Cohen's kappa between labellers, and Wilson intervals. The 30-item corpus is still not a benchmark.
+
 ## 0.3.0
 
 **The first version published to npm.** 0.1.0 and 0.2.0 were development versions and were never released; everything in their sections below ships in 0.3.0. (0.2.0's text parsing had quadratic patterns, fixed here: do not look for it.)

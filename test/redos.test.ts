@@ -3,6 +3,10 @@
 // the awkward shapes at a size where anything quadratic fails by a wide margin. If this test is slow, a pattern has become quadratic: bound it
 // (see strutil.ts), do not raise the budget.
 import { describe, expect, it } from 'vitest';
+import { caseNameBefore, sameCase } from '../src/legal.js';
+import { doisIn } from '../src/retractions.js';
+import { feedbackFrom } from '../src/loop.js';
+import { renderReview } from '../src/review.js';
 import { checkFigures, checkGrounding, checkQuote, createGate, doiFromUrl, evalFormula, extractFigures, extractTypedNumbers, isSafeAddress, linkKind, nameKey, parseCitations, splitAuthors, strip, stripTags, summariseRecency, titleSimilarity, worldBankUrlInfo } from '../src/entry.js';
 
 const N = 30_000;
@@ -18,6 +22,8 @@ const targets: Record<string, (t: string) => unknown> = {
   extractFigures: (t) => extractFigures(t), extractTypedNumbers: (t) => extractTypedNumbers(t), checkFigures: (t) => checkFigures(t, t), evalFormula: (t) => { try { evalFormula(t, {}); } catch { /* expected */ } },
   checkQuote: (t) => checkQuote(t, `${t}zzzzzzzzzzzz`), checkGrounding: (t) => checkGrounding(t, [{ ref: 1, text: t }]), stripTags: (t) => stripTags(t),
   gate: (t) => createGate().check([{ text: t, category: t, sources: [{ url: t, date: t }] }]), recency: (t) => summariseRecency([{ url: t, date: t }]), worldBankUrlInfo: (t) => worldBankUrlInfo(t),
+  caseNameBefore: (t) => caseNameBefore(t, t.length), sameCase: (t) => sameCase(t, t + ' x'), doisIn: (t) => doisIn(t), feedbackFrom: (t) => feedbackFrom([t]),
+  renderReview: (t) => renderReview([{ name: t, summary: t, items: [{ bucket: 'failed', title: t, message: t }] }]),
   isSafeAddress: (t) => isSafeAddress(t), strip: (t) => strip(t, { verdicts: [{ citation: cit(t), bucket: 'failed' } as never], summary: {} as never, ok: false }),
 };
 

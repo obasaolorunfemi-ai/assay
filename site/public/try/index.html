@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Try it · Assay</title>
+<meta name="description" content="Run the offline checks (quotes, figures, grounding) in your browser. Nothing leaves the page.">
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://assay.extrafemi.com/try/">
+<meta property="og:type" content="website"><meta property="og:url" content="https://assay.extrafemi.com/try/"><meta property="og:site_name" content="Assay">
+<meta property="og:title" content="Try it · Assay"><meta property="og:description" content="Run the offline checks (quotes, figures, grounding) in your browser. Nothing leaves the page.">
+<meta name="twitter:card" content="summary"><meta name="twitter:title" content="Try it · Assay"><meta name="twitter:description" content="Run the offline checks (quotes, figures, grounding) in your browser. Nothing leaves the page.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/newsreader-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/inter-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/style.css?v=a943624e">
+<script src="/theme.js?v=a943624e"></script>
+<script src="/menu.js?v=a943624e" defer></script>
+<script type="module" src="/demo.js?v=a943624e"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="sitebar"><div class="col sitebar-in"><a class="brand" href="/">Assay</a><nav class="sections" id="sections" aria-label="Site"><a href="/cases/">Cases</a><a href="/try/" aria-current="page">Try it</a><a href="/start/">Get started</a><a href="/evidence/">Evidence</a><a href="/checks/">Reference</a><a href="/paper/">Paper</a><a href="https://github.com/obasaolorunfemi-ai/assay">GitHub</a><a href="https://www.npmjs.com/package/@extrafemi-ai/assay">npm</a></nav><button type="button" class="icon-btn" id="theme" aria-label="Switch to dark mode" title="Light or dark"><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.3M12 19.2v2.3M2.5 12h2.3M19.2 12h2.3M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg></button><button type="button" class="icon-btn menu-btn" id="menu" aria-expanded="false" aria-controls="sections" aria-label="Open menu"><svg class="i-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="i-close" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></header>
+<main class="col page" id="main"><h1>Try the offline checks</h1>
+<p class="lede">These run in your browser, with the same code as the package. Nothing you type leaves this page: its security policy does not allow it to make a request at all.</p>
+<div class="picker"><label for="pick">Choose a check</label><select id="pick"><option value="t-quotes">Quotes: is this quote really in the source?</option><option value="t-figures">Figures: did I make up a number?</option><option value="t-grounding">Grounding: does every number trace to an approved fact?</option></select></div>
+<p class="caught" id="caught" hidden><span>Fake or unsupported things caught here, on this device: <strong id="caught-n">0</strong></span><button type="button" class="linkbtn" id="caught-reset">Reset</button><small>Counted when you finish editing a box. Kept in this browser only and never sent anywhere: this page cannot make a request.</small></p>
+<div class="tools" id="tools">
+<section class="tool" id="t-quotes"><h2>Quotes</h2><p class="sub tight">Is each quote really in the source text? One quote per line.</p><div><label for="q-source">Source text</label><textarea id="q-source" rows="4" spellcheck="false">We offer visa sponsorship for this role. Relocation support is available for senior staff only.</textarea></div><div><label for="q-quotes">Quotes to check</label><textarea id="q-quotes" rows="3" spellcheck="false">We offer visa sponsorship for this role
+Relocation is available for all staff</textarea></div><div class="results" id="t-quotes-out" aria-live="polite"></div></section>
+<section class="tool" id="t-figures"><h2>Figures</h2><p class="sub tight">Does every number in the draft appear in the materials you supplied?</p><div><label for="f-draft">Draft</label><textarea id="f-draft" rows="3" spellcheck="false">We reached 5,000 beneficiaries, a 40% increase, across three districts.</textarea></div><div><label for="f-materials">Your materials</label><textarea id="f-materials" rows="3" spellcheck="false">Our programme worked in three districts, and attendance rose 40% on last year.</textarea></div><div class="results" id="t-figures-out" aria-live="polite"></div></section>
+<section class="tool" id="t-grounding"><h2>Grounding</h2><p class="sub tight">Does each tagged line trace to an approved claim, with the same figure? One claim per line, numbered c1, c2 in order.</p><div><label for="g-claims">Approved claims</label><textarea id="g-claims" rows="3" spellcheck="false">The official rate averaged ₦645.19 in 2023.</textarea></div><div><label for="g-draft">Draft, with [[c1]] tags</label><textarea id="g-draft" rows="3" spellcheck="false">The rate moved to ₦425 in 2023 [[c1]].</textarea></div><div class="results" id="t-grounding-out" aria-live="polite"></div></section>
+</div>
+<p class="note">Citations, retractions, values, links and legal need the network, and support needs a model, so they are not here. The <a href="/checks/">reference</a> shows how to run each.</p>
+<noscript><p class="note">These tools need JavaScript. The code is the same as the package's, and the home page shows real output from it.</p></noscript>
+</main>
+<footer class="site-foot"><div class="col"><div class="foot-grid">
+<div><h2>Use it</h2><ul><li><a href="/cases/">When AI made things up</a></li><li><a href="/try/">Try it in your browser</a></li><li><a href="/start/">Get started</a></li><li><a href="/checks/">Reference</a></li></ul></div>
+<div><h2>Trust</h2><ul><li><a href="/evidence/">What counts as evidence</a></li><li><a href="/paper/">Technical paper</a></li><li><a href="/limits/">Limits</a></li><li><a href="/self-healing/">Self-healing</a></li><li><a href="/security/">Security</a></li><li><a href="/disclaimer/">Disclaimer</a></li><li><a href="/changelog/">Changelog</a></li></ul></div>
+<div><h2>Project</h2><ul><li><a href="https://github.com/obasaolorunfemi-ai/assay">GitHub</a></li><li><a href="https://www.npmjs.com/package/@extrafemi-ai/assay">npm</a></li><li><a href="https://labs.extrafemi.com">Extrafemi Labs</a></li><li><a href="https://lodestone.extrafemi.com">Lodestone</a>, its sibling</li></ul></div>
+</div><p class="foot-note">Assay 0.4.0, free and open source (MIT). A project of <a href="https://labs.extrafemi.com">Extrafemi Labs</a>. Lodestone keeps the AI call working; Assay checks what came back. The examples on this site are produced by running the library when the site is built. Results can be wrong: <a href="/disclaimer/">read the disclaimer</a>.</p></div></footer>
+</body>
+</html>

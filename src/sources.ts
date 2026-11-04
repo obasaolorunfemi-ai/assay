@@ -34,6 +34,13 @@ export interface SearchSource {
 }
 
 const arr = (x: unknown): any[] => (Array.isArray(x) ? x : []);
+/** Titles from the indexes can carry markup and line breaks (CrossRef sends `<scp>AI</scp>` for small capitals). Compare the words, not the markup. */
+export const plainTitle = (s: unknown): string => {
+  // Strip until nothing changes, so "<scr<b>ipt>" cannot be rebuilt into a tag by one pass; this text is only compared, never put in a page, but a sanitiser should be right anyway.
+  let t = String(s ?? ''), prev: string;
+  do { prev = t; t = t.replace(/<[^<>]*>/g, ''); } while (t !== prev);
+  return t.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim();
+};
 const mail = (m: string) => (m ? `&mailto=${encodeURIComponent(m)}` : '');
 export const openalexKey = (keys: Record<string, string>) => (keys.openalex ? `&api_key=${encodeURIComponent(keys.openalex)}` : '');
 
@@ -55,7 +62,7 @@ export const crossref: SearchSource = {
     return {
       ok: true,
       candidates: items.map((it: any) => ({
-        title: arr(it.title)[0] || '',
+        title: plainTitle(arr(it.title)[0]),
         authors: arr(it.author).map((a) => a.family || '').filter(Boolean),
         year: it.issued?.['date-parts']?.[0]?.[0] || 0,
         doi: it.DOI || '',
@@ -77,7 +84,7 @@ export const openalex: SearchSource = {
     return {
       ok: true,
       candidates: results.map((it: any) => ({
-        title: it.title || '',
+        title: plainTitle(it.title),
         authors: arr(it.authorships).map((a) => a.author?.display_name || '').filter(Boolean),
         year: it.publication_year || 0,
         doi: String(it.doi || '').replace(/^https?:\/\/doi\.org\//i, ''),
@@ -102,6 +109,116 @@ export const openlibrary: SearchSource = {
     };
   },
 };
+
+/** PubMed (NCBI E-utilities, free, no key): the biomedical literature, including work CrossRef and OpenAlex index poorly. Opt in with `sources: [...defaultSources, pubmed]`. */
+export const pubmed: SearchSource = {
+  name: 'PubMed',
+  authorMode: 'family',
+  canary: { title: 'The sequence of the human genome', surname: 'Venter', authors: ['Venter'] },
+  async search(q, http) {
+    // Not a quoted phrase: PubMed answers a quoted title it has not indexed as a phrase with nothing at all. Best-match order puts the real paper first.
+    const term = `${q.title.replace(/["\[\]]/g, ' ').trim()}[Title]`;
+    const found = await http.json(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=8&sort=relevance&term=${encodeURIComponent(term)}`);
+    const ids = (found.body as any)?.esearchresult?.idlist;
+    if (!found.ok || !Array.isArray(ids)) return failed(found);
+    if (!ids.length) return { ok: true, candidates: [] };
+    const r = await http.json(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=${ids.map(String).map(encodeURIComponent).join(',')}`);
+    const result = (r.body as any)?.result;
+    if (!r.ok || !result || !Array.isArray(result.uids)) return failed(r);
+    return {
+      ok: true,
+      candidates: (result.uids as string[]).map((id) => result[id]).filter(Boolean).map((it: any) => ({
+        title: String(it.title || '').replace(/\.$/, ''),
+        // PubMed writes "Alkaissi H": the surname is everything before the trailing initials.
+        authors: arr(it.authors).map((a) => String(a.name || '').replace(/\s+[A-Z]{1,3}$/, '')).filter(Boolean),
+        year: parseInt(String(it.pubdate || '').slice(0, 4), 10) || 0,
+        doi: String(arr(it.articleids).find((x) => x?.idtype === 'doi')?.value || ''),
+        article: arr(it.pubtype).some((t) => /journal article/i.test(String(t))),
+        venue: String(it.source || ''),
+      })),
+    };
+  },
+};
+
+/** Semantic Scholar (free; a shared pool without a key, a key lifts it): broad coverage, strong on computer science. Opt in with `sources: [...defaultSources, semanticscholar]`; pass `keys: { semanticscholar }`.
+ *  Built from the published API reference; the unauthenticated pool answered 429 throughout testing, so no live response has been read. A reply of the wrong shape is treated as an outage. */
+export const semanticscholar: SearchSource = {
+  name: 'Semantic Scholar',
+  canary: { title: 'Attention Is All You Need', surname: 'Vaswani', authors: ['Vaswani'] },
+  async search(q, http, { keys }) {
+    const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(q.title)}&limit=10&fields=title,year,authors,externalIds,venue,publicationTypes`;
+    const r = await http.json(url, keys.semanticscholar ? { headers: { 'x-api-key': keys.semanticscholar } } : undefined);
+    const data = (r.body as any)?.data;
+    if (!r.ok || !Array.isArray(data)) return failed(r);
+    return {
+      ok: true,
+      candidates: data.map((it: any) => ({
+        title: it.title || '',
+        authors: arr(it.authors).map((a) => a?.name || '').filter(Boolean),
+        year: Number(it.year) || 0,
+        doi: String(it.externalIds?.DOI || ''),
+        article: arr(it.publicationTypes).includes('JournalArticle'),
+        venue: it.venue || '',
+      })),
+    };
+  },
+};
+
+/** Describes a citation source that speaks JSON over HTTPS, so one can be added with data instead of code. */
+export interface JsonSourceSpec {
+  name: string;
+  /** An https address with `{title}` and `{surname}` where the search words go (they are URL-encoded). The host must be fixed: no placeholder before the first "/" after it. */
+  url: string;
+  /** Extra headers, such as an API key. A value of the form `key:NAME` is replaced by `keys.NAME` from the options. */
+  headers?: Record<string, string>;
+  /** Dot path to the array of records in the reply, for example `data.items`. */
+  results: string;
+  /** Dot paths, inside each record, to the fields. `authors` points at an array of strings, or of objects (then give `authorName`). */
+  fields: { title: string; authors: string; year: string; doi?: string; venue?: string };
+  authorName?: string;
+  authorMode?: 'family' | 'display';
+  /** A work that certainly exists. Required: before this source's "not found" is believed, it is asked for this. */
+  canary: Canary;
+}
+const at = (o: unknown, path: string | undefined): unknown => (path ? path.split('.').reduce<unknown>((v, k) => (v && typeof v === 'object' ? (v as Record<string, unknown>)[k] : undefined), o) : undefined);
+
+/** Builds a `SearchSource` from a description. It checks the description when you make it (https, a fixed host, a canary) and the reply every time (a reply that is not an array of records is an outage, never "no results"). */
+export function jsonSource(spec: JsonSourceSpec): SearchSource {
+  if (!spec.name?.trim()) throw new TypeError('jsonSource needs a name');
+  if (!spec.canary?.title || !spec.canary?.surname) throw new TypeError(`jsonSource "${spec.name}" needs a canary: a work that certainly exists, so a broken source cannot be mistaken for "not found"`);
+  if (!spec.results || !spec.fields?.title || !spec.fields?.authors || !spec.fields?.year) throw new TypeError(`jsonSource "${spec.name}" needs results and the title, authors and year fields`);
+  let probe: URL;
+  try { probe = new URL(spec.url.replace(/\{(title|surname)\}/g, 'x')); } catch { throw new TypeError(`jsonSource "${spec.name}": the url is not an address`); }
+  if (probe.protocol !== 'https:') throw new TypeError(`jsonSource "${spec.name}": the url must be https`);
+  const hostPart = spec.url.slice(0, spec.url.indexOf('/', 'https://'.length) < 0 ? spec.url.length : spec.url.indexOf('/', 'https://'.length));
+  if (/[{}]/.test(hostPart)) throw new TypeError(`jsonSource "${spec.name}": the host must be fixed, not filled from the search words`);
+  return {
+    name: spec.name,
+    ...(spec.authorMode ? { authorMode: spec.authorMode } : {}),
+    canary: spec.canary,
+    async search(q, http, { keys }) {
+      const url = spec.url.replace(/\{title\}/g, encodeURIComponent(q.title)).replace(/\{surname\}/g, encodeURIComponent(q.surname));
+      const headers = Object.fromEntries(Object.entries(spec.headers ?? {}).map(([k, v]) => [k, v.startsWith('key:') ? (keys[v.slice(4)] ?? '') : v]));
+      const r = await http.json(url, Object.keys(headers).length ? { headers } : undefined);
+      const rows = at(r.body, spec.results);
+      if (!r.ok || !Array.isArray(rows)) return failed(r);
+      return {
+        ok: true,
+        candidates: rows.map((row) => {
+          const names = at(row, spec.fields.authors);
+          return {
+            title: plainTitle(at(row, spec.fields.title)),
+            authors: arr(names).map((a) => (typeof a === 'string' ? a : String(at(a, spec.authorName) ?? ''))).filter(Boolean),
+            year: Number(at(row, spec.fields.year)) || 0,
+            doi: String(at(row, spec.fields.doi) ?? '').replace(/^https?:\/\/doi\.org\//i, ''),
+            article: false,
+            venue: String(at(row, spec.fields.venue) ?? ''),
+          };
+        }),
+      };
+    },
+  };
+}
 
 export const defaultSources: SearchSource[] = [crossref, openalex, openlibrary];
 

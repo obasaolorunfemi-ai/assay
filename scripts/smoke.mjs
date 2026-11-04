@@ -6,6 +6,12 @@ import * as gate from '@extrafemi-ai/assay/gate';
 import * as values from '@extrafemi-ai/assay/values';
 import * as grounding from '@extrafemi-ai/assay/grounding';
 import * as links from '@extrafemi-ai/assay/links';
+import * as support from '@extrafemi-ai/assay/support';
+import * as legal from '@extrafemi-ai/assay/legal';
+import * as retractions from '@extrafemi-ai/assay/retractions';
+import * as review from '@extrafemi-ai/assay/review';
+import * as loop from '@extrafemi-ai/assay/loop';
+import * as tally from '@extrafemi-ai/assay/tally';
 
 const need = (cond, msg) => { if (!cond) { console.error('SMOKE FAILED:', msg); process.exit(1); } };
 
@@ -37,6 +43,17 @@ need(links.isSafeAddress('::ffff:7f00:1') === false && links.isSafeAddress('169.
 need(links.checkUrl('http://localhost/').ok === false && links.checkUrl('https://example.com/x').ok === true, 'checkUrl');
 const lv = await links.createLinkChecker().checkOne('http://169.254.169.254/latest/meta-data/');
 need(lv.status === 'unsafe', 'the link checker refuses the metadata address without a request');
+need(typeof support.createSupport === 'function', 'support exports');
+const sv = await support.createSupport({ judge: async () => ({ verdict: 'supports', evidence: 'Attendance rose 40% on the previous year' }) }).checkOne('Attendance rose 40%.', 'Attendance rose 40% on the previous year.');
+need(sv.status === 'evidence-found' && sv.bucket === 'check', 'support: found evidence is to confirm, never ok by default');
+need((await support.createSupport({ judge: async () => ({ verdict: 'supports', evidence: 'It doubled everywhere in the country' }) }).checkOne('It doubled.', 'Attendance rose 40% on the previous year.')).status === 'evidence-invented', 'support: invented evidence fails');
+need(typeof legal.createLegal === 'function' && typeof legal.sameCase === 'function', 'legal exports');
+need(typeof retractions.createRetractions === 'function' && retractions.doisIn('see https://doi.org/10.1145/3571730.')[0] === '10.1145/3571730', 'retractions exports');
+const page = review.renderReview([{ name: 'X', summary: 's', items: [{ bucket: 'failed', title: '<b>t</b>', message: 'm' }] }]);
+need(page.includes('&lt;b&gt;') && !page.includes('<script'), 'review escapes and carries no script');
+need(typeof loop.improve === 'function' && (await loop.improve({ text: 'ok', check: async () => ({ ok: true, failures: [] }), regenerate: async () => 'x' })).ok === true, 'loop');
+const tl = tally.createTally(); tl.add('quotes', quotes.checkQuotes([{ quote: 'an invented quote nobody wrote', source: 'something else entirely' }]));
+need(tl.snapshot().failed === 1 && !JSON.stringify(tl.snapshot()).includes('invented'), 'tally counts without keeping text');
 const a = root.createAssay();
 need(['check', 'verify', 'recheck', 'repair', 'health', 'parse'].every((k) => typeof a[k] === 'function'), 'Assay methods');
 

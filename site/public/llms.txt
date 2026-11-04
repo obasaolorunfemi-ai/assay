@@ -1,0 +1,15 @@
+# Assay
+
+> Checks AI-written text against evidence. A set of separate checks (citations, quotes, figures, gate, grounding, values, links), each saying what it compared the text with. npm: @extrafemi-ai/assay. MIT.
+
+- [What counts as evidence](https://assay.extrafemi.com/evidence/): what Assay counts as evidence, why, and which sources
+- [Disclaimer](https://assay.extrafemi.com/disclaimer/): limits of Assay and this site
+- [When AI made things up](https://assay.extrafemi.com/cases/): documented cases and whether Assay would have caught each
+- [Get started](https://assay.extrafemi.com/start/): install and recipes
+- [Reference](https://assay.extrafemi.com/checks/): every check, option and status
+- [Self-healing](https://assay.extrafemi.com/self-healing/): how it avoids accusing when a source is down
+- [Limits](https://assay.extrafemi.com/limits/): what it cannot do
+- [Security](https://assay.extrafemi.com/security/): publishing, protections, link-checker threat model
+- [Changelog](https://assay.extrafemi.com/changelog/)
+- [Source](https://github.com/obasaolorunfemi-ai/assay)
+- [Full text](https://assay.extrafemi.com/llms-full.txt)
