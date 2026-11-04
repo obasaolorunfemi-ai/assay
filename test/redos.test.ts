@@ -7,7 +7,7 @@ import { caseNameBefore, sameCase } from '../src/legal.js';
 import { doisIn } from '../src/retractions.js';
 import { feedbackFrom } from '../src/loop.js';
 import { renderReview } from '../src/review.js';
-import { checkFigures, checkGrounding, checkNames, checkQuote, createGate, doiFromUrl, evalFormula, extractFigures, extractTypedNumbers, isSafeAddress, linkKind, nameKey, parseCitations, splitAuthors, strip, stripTags, summariseRecency, titleSimilarity, worldBankUrlInfo } from '../src/entry.js';
+import { checkClaims, checkDraft, ownWorks, checkFigures, checkGrounding, checkNames, checkReferences, checkQuote, createGate, doiFromUrl, evalFormula, extractFigures, extractTypedNumbers, isSafeAddress, linkKind, nameKey, parseCitations, splitAuthors, strip, stripTags, summariseRecency, titleSimilarity, worldBankUrlInfo } from '../src/entry.js';
 
 const N = 30_000;
 const families: Record<string, string> = {
@@ -19,7 +19,7 @@ const families: Record<string, string> = {
 const cit = (t: string) => ({ raw: t, tag: `[${t}]`, authors: t, year: '2001', title: t, venue: t, url: t, tier: 'search' as const });
 const targets: Record<string, (t: string) => unknown> = {
   parseCitations: (t) => parseCitations(t), splitAuthors: (t) => splitAuthors(t), linkKind: (t) => linkKind(t), doiFromUrl: (t) => doiFromUrl(t), titleSimilarity: (t) => titleSimilarity(t, t), nameKey: (t) => nameKey(t),
-  extractFigures: (t) => extractFigures(t), checkNames: (t) => checkNames(t, t), checkNamesVsOther: (t) => checkNames(t, 'Ada Example. Lagos.'), extractTypedNumbers: (t) => extractTypedNumbers(t), checkFigures: (t) => checkFigures(t, t), evalFormula: (t) => { try { evalFormula(t, {}); } catch { /* expected */ } },
+  extractFigures: (t) => extractFigures(t), checkNames: (t) => checkNames(t, t), checkClaims: (t) => checkClaims(t, t), ownWorks: (t) => ownWorks(t), checkReferences: (t) => checkReferences(t, 'x'), checkDraft: (t) => checkDraft(t, 'Ada Example.'), checkDraftAbout: (t) => checkDraft(t, 'x', { about: 'you' }), checkNamesVsOther: (t) => checkNames(t, 'Ada Example. Lagos.'), extractTypedNumbers: (t) => extractTypedNumbers(t), checkFigures: (t) => checkFigures(t, t), evalFormula: (t) => { try { evalFormula(t, {}); } catch { /* expected */ } },
   checkQuote: (t) => checkQuote(t, `${t}zzzzzzzzzzzz`), checkGrounding: (t) => checkGrounding(t, [{ ref: 1, text: t }]), stripTags: (t) => stripTags(t),
   gate: (t) => createGate().check([{ text: t, category: t, sources: [{ url: t, date: t }] }]), recency: (t) => summariseRecency([{ url: t, date: t }]), worldBankUrlInfo: (t) => worldBankUrlInfo(t),
   caseNameBefore: (t) => caseNameBefore(t, t.length), sameCase: (t) => sameCase(t, t + ' x'), doisIn: (t) => doisIn(t), feedbackFrom: (t) => feedbackFrom([t]),

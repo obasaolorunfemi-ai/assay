@@ -32,6 +32,22 @@
       "types": "./dist/names.d.ts",
       "import": "./dist/names.js"
     },
+    "./claims": {
+      "types": "./dist/claims.d.ts",
+      "import": "./dist/claims.js"
+    },
+    "./references": {
+      "types": "./dist/references.d.ts",
+      "import": "./dist/references.js"
+    },
+    "./draft": {
+      "types": "./dist/draft.d.ts",
+      "import": "./dist/draft.js"
+    },
+    "./own": {
+      "types": "./dist/own.d.ts",
+      "import": "./dist/own.js"
+    },
     "./gate": {
       "types": "./dist/gate.d.ts",
       "import": "./dist/gate.js"

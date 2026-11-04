@@ -8,12 +8,15 @@
    figures catches an invented number, names catches an invented name. */
 import type { Bucket, Summary } from './types.js';
 import { summarizeBuckets } from './summary.js';
+import { scopedSentences, type About } from './scope.js';
 
 export interface NameOptions {
   /** Capitalised words that are never names in your text (a greeting, your own jargon). Added to the built-in list; compared in lower case. */
   ignore?: string[];
   /** Also check links, DOIs and email addresses. Default true. */
   links?: boolean;
+  /** Read only the sentences that speak to or about the reader ("Your experience at…"). For advice that should make no claim about the person. */
+  about?: About;
 }
 
 export interface NameVerdict {
@@ -55,6 +58,11 @@ const TOKEN = /[\p{L}\p{N}][\p{L}\p{N}'’-]*|&/gu;
 // Bounded on purpose: an unbounded `[\w.+-]+@` is quadratic on a long run of word characters (see test/redos.test.ts).
 const LINK = /(?:https?:\/\/|www\.)[^\s<>"')\]]{1,2000}|\b10\.\d{4,9}\/[^\s<>"')\]]{1,2000}|[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63}){1,8}/gi;
 
+/** Words that say an organisation is one: "greenfield foundation", "acme corp". Ambiguous ones ("group", "capital", "labs") are left out. */
+const ORG_AFTER = /(?<![\p{L}\p{N}'’-])([\p{L}][\p{L}'’-]{1,30})\s+(foundation|university|institute|ministry|bank|corporation|corp|ltd|limited|inc|llc|plc|holdings|partners)\b/giu;
+/** Ordinary words that often come before those markers without being a name ("development bank", "research institute"). */
+const MODIFIERS = new Set('development investment commercial central national international global local regional research private public social community retail merchant digital mobile online sovereign venture state federal city county world european african asian american state-owned islamic investment microfinance savings reserve'.split(' '));
+
 const clean = (w: string) => w.replace(/['’]s$/i, '').replace(/^['’-]+|['’-]+$/g, '');
 const isCap = (w: string) => /^\p{Lu}/u.test(w);
 const isAcronym = (w: string) => /^\p{Lu}[\p{Lu}\p{N}-]+$/u.test(clean(w));
@@ -79,10 +87,6 @@ function wordIndex(text: string) {
     if (w.length >= 5) { const k = w.slice(0, 5); const list = byPrefix.get(k); if (list) list.push(w); else byPrefix.set(k, [w]); }
   }
   return (w: string) => exact.has(w) || (w.length >= 5 && (byPrefix.get(w.slice(0, 5)) ?? []).some((k) => sameWord(k, w)));
-}
-
-function sentences(text: string): string[] {
-  return text.split(/\n+|(?<=[.!?])\s+(?=[\p{Lu}"“(])/u).map((s) => s.replace(/^\s*(?:[-•*–·]\s+|\d+[.)]\s+)/, '').trim()).filter(Boolean);
 }
 
 /** Capitalised runs in one sentence, as lists of their words. */
@@ -121,7 +125,7 @@ export function checkNames(text: string, materials: string | string[], opts: Nam
   const verdicts: NameVerdict[] = [];
   const seen = new Set<string>();
 
-  for (const s of sentences(text)) {
+  for (const s of scopedSentences(text, opts.about)) {
     for (const run of runsIn(s, stop)) {
       const caps = run.filter((w) => !CONNECT.has(w.toLowerCase()));
       if (!caps.length) continue;
@@ -136,9 +140,27 @@ export function checkNames(text: string, materials: string | string[], opts: Nam
     }
   }
 
+  // An organisation written in lower case ("the greenfield foundation") has no capital to read, but it still ends in a word
+  // that says what it is. The word before that marker must be in the materials, unless it is an ordinary modifier.
+  for (const s of scopedSentences(text, opts.about)) {
+    for (const m of s.matchAll(ORG_AFTER)) {
+      const lead = clean(m[1] ?? '').toLowerCase();
+      if (!lead || stop.has(lead) || MODIFIERS.has(lead) || isCap(m[1] ?? '')) continue;
+      const name = `${m[1]} ${m[2]}`;
+      if (seen.has(name.toLowerCase())) continue;
+      seen.add(name.toLowerCase());
+      const supported = has(lead);
+      verdicts.push({
+        name, kind: 'name', supported, bucket: supported ? 'ok' : 'failed',
+        message: supported ? 'Every word of this name is in your materials.' : 'This name is not in your materials. Check it exists and is yours to claim.',
+      });
+    }
+  }
+
   if (opts.links !== false) {
     const known = new Set((joined.match(LINK) ?? []).map(canonLink));
-    for (const m of text.match(LINK) ?? []) {
+    const scopedText = opts.about ? scopedSentences(text, opts.about).join('\n') : text;
+    for (const m of scopedText.match(LINK) ?? []) {
       const name = trimLink(m);
       if (seen.has(name.toLowerCase())) continue;
       seen.add(name.toLowerCase());

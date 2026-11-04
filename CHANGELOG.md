@@ -4,6 +4,13 @@ Versions before 1.0 may change between minor releases; each change that could br
 
 ## 0.6.0 (unreleased)
 
+- **`/own`**: `ownMaterials(texts)` is a citation source that finds works in a person's own CV, profile and letters and answers with no request, so their own publications are confirmed locally (and never sent to a public index). Put it before `defaultSources`.
+- **`/claims`**: does the draft say something about the person that the materials never say, even with no name, figure or link? "Led a large team" carries two claims, *led* and *large*. Embellishments (*large, global, senior…*) must be in the materials; ownership (*led, founded, won, published*) is backed by any word of the same kind; credentials, *decade* and lower-case tools (*kubernetes, tableau, machine learning*) are checked too. A list, not a judgement, and it says so.
+- **`/references`**: does the draft lean on a source the materials never mention? Reads the loose forms a model writes unprompted (author and year, `[1]`, *according to…*, *studies show*), which the bracketed citations check does not.
+- **`/draft`**: figures, names, references and claims in one call, a citation reported once however many checks it trips.
+- **`about: 'you'`** on names, references, claims and draft: read only the sentences that speak to or about the reader, so general advice (interview questions, career direction) is held to what it says about the person, not to every general statement.
+- **Names: organisations written in lower case.** "the greenfield foundation" and "acme corp" are caught by the word that says what they are, with a short list of ordinary modifiers ("development bank") left alone.
+- **Fixed: a full stop after "et al" no longer ends a sentence**, so "Adeyemi et al. (2021)" is read as one citation.
 - **`/names`**: is every person, organisation, link and DOI in a draft one that your materials mention? The companion to figures: an invented "Greenfield Foundation" or "my earlier role at Acme Capital" has no digit, so the figures check passes it. A name is supported when every capitalised word in it is in the materials; links, DOIs and email addresses must appear in them too. Offline, bounded against quadratic patterns, and in the offline and no-quadratic tests like the other modules. Built for KeyStone, whose grant drafts, CV rewrites and cover letters needed it.
 
 ## 0.5.0
