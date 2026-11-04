@@ -2,7 +2,7 @@
 
 Versions before 1.0 may change between minor releases; each change that could break a caller is marked **breaking**.
 
-## 0.6.0 (unreleased)
+## 0.6.0
 
 - **`/own`**: `ownMaterials(texts)` is a citation source that finds works in a person's own CV, profile and letters and answers with no request, so their own publications are confirmed locally (and never sent to a public index). Put it before `defaultSources`.
 - **`/claims`**: does the draft say something about the person that the materials never say, even with no name, figure or link? "Led a large team" carries two claims, *led* and *large*. Embellishments (*large, global, senior…*) must be in the materials; ownership (*led, founded, won, published*) is backed by any word of the same kind; credentials, *decade* and lower-case tools (*kubernetes, tableau, machine learning*) are checked too. A list, not a judgement, and it says so.

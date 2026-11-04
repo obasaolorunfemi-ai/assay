@@ -13,6 +13,11 @@ import * as review from '@extrafemi-ai/assay/review';
 import * as loop from '@extrafemi-ai/assay/loop';
 import * as tally from '@extrafemi-ai/assay/tally';
 import * as share from '@extrafemi-ai/assay/share';
+import * as names from '@extrafemi-ai/assay/names';
+import * as claims from '@extrafemi-ai/assay/claims';
+import * as references from '@extrafemi-ai/assay/references';
+import * as draft from '@extrafemi-ai/assay/draft';
+import * as own from '@extrafemi-ai/assay/own';
 
 const need = (cond, msg) => { if (!cond) { console.error('SMOKE FAILED:', msg); process.exit(1); } };
 
@@ -22,6 +27,14 @@ need(root.parseCitations('[Rose, 1985, "Sick individuals and sick populations" â
 need(typeof quotes.checkQuote === 'function' && typeof quotes.verifyQuote === 'function' && typeof quotes.checkQuotes === 'function', 'quotes exports');
 need(quotes.verifyQuote('Visa sponsorship is available for this role.', 'visa sponsorship is available') === true, 'verifyQuote finds a real quote');
 need(quotes.verifyQuote('Visa sponsorship is available for this role.', 'relocation is available for all staff') === false, 'verifyQuote rejects an invented one');
+
+need(typeof names.checkNames === 'function' && typeof names.findUnsupportedNames === 'function', 'names exports');
+need(names.findUnsupportedNames('We partnered with the Greenfield Foundation.', 'We built an app.').includes('Greenfield Foundation'), 'names flags an invented organisation');
+need(names.findUnsupportedNames('We built an app.', 'We built an app.').length === 0, 'names passes a supported draft');
+need(typeof claims.checkClaims === 'function' && claims.findUnsupportedClaims('Led a large team.', 'Managed a team.').join() === 'large', 'claims flags an embellishment and backs "led" with "managed"');
+need(typeof references.checkReferences === 'function' && references.findUnsupportedReferences('Studies show this works.', 'We built an app.').length === 1, 'references flags an unnamed appeal');
+need(typeof draft.checkDraft === 'function' && draft.checkDraft('We reached 5,000 people at Acme Capital.', 'We built an app.').findings.length >= 2, 'draft holds a draft to figures and names');
+need(typeof own.ownMaterials === 'function' && own.ownWorks('Okafor, A. & Bello, B. (2019). Mobile payments and informal merchants in Lagos. Journal of African Finance.').length === 1, 'own reads a reference line');
 
 need(typeof figures.checkFigures === 'function' && typeof figures.evalFormula === 'function' && typeof figures.extractFigures === 'function', 'figures exports');
 need(figures.checkFigures('We reached 5,000 people.', 'We trained 40 women.').ok === false, 'checkFigures flags an invented figure');
