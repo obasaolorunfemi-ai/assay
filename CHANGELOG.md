@@ -2,6 +2,30 @@
 
 Versions before 1.0 may change between minor releases; each change that could break a caller is marked **breaking**.
 
+## 0.3.0
+
+**The first version published to npm.** 0.1.0 and 0.2.0 were development versions and were never released; everything in their sections below ships in 0.3.0. (0.2.0's text parsing had quadratic patterns, fixed here: do not look for it.)
+
+**Self-healing citation checks.** See the README. A throttled, broken or changed source can no longer turn into an accusation, and the checker recovers by itself.
+
+- Source health: a breaker per source (three failures, or a `Retry-After`, then it is left alone, capped at 15 minutes, then probed), `health()`.
+- A **self-test before any accusation**: before "not found", each source that said so must find a work that certainly exists. Single-flight, trusted for ten minutes.
+- A reply that is not the shape the source normally sends is an outage, never "no results". (A changed API used to read as an empty result list.)
+- **Stale-while-error**: an earlier conclusive answer is served, marked `stale`, when the sources cannot be reached. Verdicts gain `retryable`, `stale` and `reason`.
+- `recheck(report)` and `repair(text, report)` (a real paper with an invented DOI gets the matched record's DOI, after the new link is itself verified).
+- Short `Retry-After` waits are retried in the call; long ones are believed and the source is left alone instead.
+- **Fixed: the cache ignored the link**, so a paper first cited with a good DOI could make a later invented DOI read as verified, and the reverse. The link is now part of what is remembered.
+
+**`@extrafemi-ai/assay/gate`** (ported from Content Engine's sourcing gate): `createGate(policy)`, `rules`, `defaultPolicy`, `summariseRecency`. The policy is data you pass in; Oneremit's own tier list stays in Content Engine. The Hormuz tracker's "one authority or two news sources" is a second rule on the same engine. Offline.
+
+**Hardened against slow input.** CodeQL flagged polynomial regular expressions, and measuring confirmed ten places that were quadratic on a long run of one character (author splitting, typed numbers, quote trimming, tag stripping, DOI trimming, and the gate's host handling). Repetitions are now bounded, trimming is linear (`strutil`), hosts are capped at 253 characters, and `redos.test.ts` runs every public function against 24 awkward input families. Some of these were already in 0.2.0's `parseCitations`/`splitAuthors`; they are fixed here.
+
+**`@extrafemi-ai/assay/links`** (server-only; ported from Content Engine's `verify-url` and Fieldstone's SSRF guard, and **stricter than both**): `createLinkChecker`, `checkUrl`, `isSafeAddress`, `looksLikeSoft404`. Fixed in the port: both originals resolved the name to check it and then let `fetch` resolve it again (DNS rebinding); here the address is validated inside the connection's own lookup. Both missed the hex form of IPv4-mapped IPv6 (`::ffff:7f00:1`, which is what a URL parser produces), NAT64, 6to4, Teredo and several IPv4 reserved ranges, blocked only the exact name `localhost`, accepted credentials and any port. Hop-by-hop redirect re-validation, per-host concurrency, a URL cap, a body-size bound, a breaker with `Retry-After`, an honest `User-Agent`, and `blocked` (a site refusing) kept distinct from `broken`. Package exports it with `"browser": null`.
+
+**`@extrafemi-ai/assay/grounding`** (ported from Content Engine): `checkGrounding`, `stripTags`, `defaultTagFormat`. Every figure in a draft must trace to an approved claim, and match it. The tag syntax is configurable; violations have machine-readable codes; `[[logic]]` can never justify a figure. Stricter than the original in one place: an unreadable `[[calc: …]]` formula is a violation, not a pass. `figures` also exports Content Engine's typed number helpers (`extractTypedNumbers`, `numbersOverlap`, …). Offline.
+
+**`@extrafemi-ai/assay/values`** (ported from Content Engine's reconciliation and Fieldstone's value states): `createValues`, `reconcile`, `worldBank`, `imf`, `seededSource`, `worldBankUrlInfo`. Unit and exact-period discipline; a model cross-check hook that can contradict but never verify; self-healing like citations (shape checks, breaker with `Retry-After`, self-test before a mismatch stands, stale-while-error series, `health()`).
+
 ## 0.2.0
 
 Assay becomes a set of separate checks, each with its own entry point and each saying what it compares against.

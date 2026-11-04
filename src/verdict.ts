@@ -13,7 +13,12 @@ export function bucketOf(status: Status, exact: boolean | undefined, notes: stri
 }
 
 /** One sentence, in plain words, for what was found. */
-export function messageFor(v: Pick<Verdict, 'status' | 'source' | 'exact' | 'match' | 'notes' | 'linkState' | 'suggestedDoi'>, searched: string[]): string {
+export function messageFor(v: Pick<Verdict, 'status' | 'source' | 'exact' | 'match' | 'notes' | 'linkState' | 'suggestedDoi' | 'reason' | 'stale'>, searched: string[]): string {
+  const m = messageBody(v, searched);
+  return v.stale ? `${m} (From an earlier check: the sources could not be reached just now.)` : m;
+}
+
+function messageBody(v: Pick<Verdict, 'status' | 'source' | 'exact' | 'match' | 'notes' | 'linkState' | 'suggestedDoi' | 'reason'>, searched: string[]): string {
   switch (v.status) {
     case 'found': {
       const parts: string[] = [];
@@ -32,7 +37,7 @@ export function messageFor(v: Pick<Verdict, 'status' | 'source' | 'exact' | 'mat
     case 'approx-unparsed': return 'Approximate: could not tell whose work or what topic.';
     case 'no-title': return 'No title was given, so there is nothing to confirm.';
     case 'limit': return 'Not checked: this text has more citations than the limit for one check, so the rest were left alone rather than sent to the free services.';
-    case 'unavailable': return 'The citation sources were unreachable or throttled. This says nothing about the citation; try again later.';
+    case 'unavailable': return `The citation sources could not give a trustworthy answer${v.reason ? ` (${v.reason})` : ''}. This says nothing about the citation; it can be checked again later.`;
     default: return '';
   }
 }

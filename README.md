@@ -10,12 +10,16 @@ entry point, and you use only the ones your scenario needs.
 | **citations** | public records of papers and books (CrossRef, OpenAlex, Open Library, the DOI registries) | yes | `@extrafemi-ai/assay` |
 | **quotes** | the source text you supply: is this sentence really in it? | **no** | `@extrafemi-ai/assay/quotes` |
 | **figures** | the materials you supply: does every number come from them? | **no** | `@extrafemi-ai/assay/figures` |
+| **gate** | a policy about sources: is each claim sourced well enough to be stated? | **no** | `@extrafemi-ai/assay/gate` |
+| **grounding** | a list of approved claims: does every figure in a draft trace to one, and match it? | **no** | `@extrafemi-ai/assay/grounding` |
+| **links** | the live web: is the page there? (server-side only) | yes | `@extrafemi-ai/assay/links` |
+| **values** | a source's own data (World Bank, IMF, or figures you seeded): does the number match, for that year? | yes | `@extrafemi-ai/assay/values` |
 
-The two that check against *your own material* never touch the network, and a test enforces that, so they are safe to run on private text
+The ones that check against *your own material or policy* never touch the network, and a test enforces that, so they are safe to run on private text
 such as a CV. Only citations sends anything out (the author, title, year and link of each citation, never the surrounding text).
 All three report the same way: a verdict for each item with a plain-words `message`, a one-line `summary`, and `ok`.
 
-More checks are planned as separate modules (source tiers, values against a source's data, grounding). Each will say what it compares against.
+Each check says what it compares against.
 
 ## Citations
 
@@ -93,6 +97,135 @@ Each verdict has `status` (`found`, `badlink`, `mismatch`, `notfound`, `approx-o
 
 `message`, `match.title` and the citation's own fields contain text from the web or from a model. Use `textContent`, or `escapeHtml()` (exported) before putting any of it in HTML.
 
+### Self-healing
+
+The sources are free and shared, and they break: OpenAlex now gives each address a small daily budget, and a service can change what it sends
+without any error. None of that may turn into an accusation against a citation, and none of it should need a person to notice.
+
+- **A changed or broken reply is an outage, not "no results".** A reply that is not the shape the source normally sends (an HTML error page,
+  a renamed field) makes the result `unavailable`.
+- **A source is tested before it is believed.** Before anyone is told "not found", each source that said so is asked for a work that certainly
+  exists. A source that cannot find it is broken without an error, and its answer is discarded (`unavailable`, with the reason). A passed test
+  is trusted for ten minutes, and citations checked at the same moment share one test.
+- **A failing source is left alone, then probed.** Three failures in a row, or a `Retry-After`, and it is not asked for a while (never longer
+  than 15 minutes, even if it asks for 20 hours); then one request is let through to see. Short waits are retried inside the call.
+- **An old answer beats "could not tell".** A conclusive result is kept for a week. If the sources are down when it expires, the earlier answer
+  is returned marked `stale: true`, with a message saying so.
+- **`recheck(report)`** checks again only what could not be settled (`retryable`), once the sources are back.
+- **`repair(text, report)`** fixes what needs no guessing: a real paper with an invented DOI gets the DOI of the record it matched, but only
+  after that new link is looked up and found to be the paper. It returns the new text and a list of every change. Everything else is left to you.
+- **`health()`** asks each source for its known work and says which are `healthy`, `degraded` (answering, but wrongly) or `down` (and when it will be tried again).
+
+What is remembered is about the citation *and its link*: a paper first cited with a good DOI never makes a later invented DOI pass.
+
+## Gate
+
+Is a claim sourced well enough to be stated? The gate checks claims against a **policy about their sources**: no network, no model. It judges how a
+claim is *sourced*, not whether it is true.
+
+```ts
+import { createGate, rules } from '@extrafemi-ai/assay/gate';
+
+const gate = createGate({
+  domains: { 'woodmac.com': 2, 'kpler.com': 2 },          // your own tier list (a small neutral default is built in)
+  firstParty: ['mybrand.example'],                         // always tier 0
+  rules: [rules.estimatesCausalLegalNeedSpecialist],       // or write your own
+});
+
+const report = gate.check([
+  { text: 'Delays cost traders an estimated $400m.', category: 'loss-estimate', sources: [{ url: 'https://reuters.com/x', date: '2026-01-01' }] },
+]);
+report.dropped[0].reason;   // "a loss estimate, causal or force-majeure claim needs one source at Tier 2 or better"
+report.summary.text;        // "Claims: 1 · ✕ 1 dropped — do not state the dropped ones as fact."
+report.unlistedDomains;     // domains the policy did not know: review them and add the good ones
+```
+
+Tiers: 0 your own first-party data, 1 an authority within its mandate, 2 a specialist, 3 the press, 4 an aggregator (it points to the real source;
+it is never the source). Outcomes: `pass`, `hold` (only backing is news under 24 hours old), `needs-corroboration`, `low-tier-only`, `no-source`, and `error`
+(a claim that could not be judged, which never passes). A **rule** says which claims need stronger backing (by label *or* by what the text reads like, so a
+wrong label does not dodge it) and what satisfies it, as "any of": `[{ atLeast: 1, tier: 1 }, { atLeast: 2, tier: 3 }]` is "one authority or two news
+sources", counted by *different sites*. Nobody can raise an unknown domain above tier 3 by saying so, including the claim's own author.
+A broken policy entry is dropped and reported in `gate.warnings` rather than taking the gate down. `summariseRecency()` lists sources older than two years.
+
+## Values
+
+A citation can be real and its link live, and the claim can still state the wrong year's figure. `values` asks the source's own data.
+
+```ts
+import { createValues } from '@extrafemi-ai/assay/values';
+
+const values = createValues({ mailto: 'you@example.org' });
+
+await values.check({ value: 19.5e9, unit: 'USD', period: 2023, geo: 'NGA', subject: 'remittances' });
+// { state: 'verified', message: 'Matches World Bank (BX.TRF.PWKR.CD.DT) for 2023: 19,549,549,365 (exact).', … }
+
+await values.checkText('Remittances reached $25 billion in 2023.', { url: 'https://api.worldbank.org/v2/country/NGA/indicator/BX.TRF.PWKR.CD.DT' });
+// one verdict per year the sentence names; ok: false, "the claim says 25,000,000,000; World Bank says 19,549,549,365 for 2023"
+```
+
+It is strict on purpose: the **unit must match** (a GBP claim against a USD series, or a count against a percentage, is a different measurement, not a
+disagreement), the **exact period must exist** (a close number for a different year never counts: `period-unmatched` is a downgrade, not a pass), and **a model
+cannot produce "verified"**. States: `verified`, `mismatch`, `unit-mismatch`, `period-unmatched`, `no-data`, `no-source`, `unavailable`, `not-checkable`.
+
+Sources: `worldBank` and `imf` (free, no key; the IMF covers World Economic Outlook aggregates only), and `seededSource(entries)` for figures a *person* read off a primary
+publication (a central bank's report) where no API exists. Every seeded figure is reported as verified, so none should go in from memory or from a model.
+`reconcile(claim, series)` is the pure comparison, usable on its own. Add your own source with `{ name, fetch(claim, ctx) }`.
+
+`crossCheck` is an optional hook **you** supply (a model call, say; Assay makes none) for a claim no source covers. It can flag a mismatch (`cross-check-mismatch`).
+At best it says `plausible`, which is a `check`, never verification. Values are self-healing like citations: a changed reply shape or an error body is `unavailable`, never "no
+data" or a mismatch; a throttled source is left alone and its `Retry-After` believed; an earlier series is served (`stale`) when the source is down; and a source's "mismatch"
+is held back unless it first returns a known figure correctly (`health()` reports this).
+
+## Grounding
+
+A model that tags its own sentence `[[c3]]` has proved nothing until something checks that c3 exists, that the sentence's *own* figure matches c3's, and that a line
+carrying a number carries a tag that can justify one. `checkGrounding` does that against the claims you approved for the draft.
+
+```ts
+import { checkGrounding, stripTags } from '@extrafemi-ai/assay/grounding';
+
+const claims = [{ ref: 1, text: 'The official rate averaged ₦645.19 in 2023.' }];
+const r = checkGrounding('The rate moved to ₦425 in 2023 [[c1]].', claims);
+r.ok;                       // false
+r.violations[0];            // { code: 'figure-mismatch', reason: "states a figure that doesn't match c1's stated figure: possible mis-citation", … }
+r.summary.text;             // "Lines: 1 · ✕ 1 not grounded — do not publish the flagged lines as they stand."
+stripTags(draft);           // the published text, tags removed
+```
+
+Tags: `[[c3]]` or `[[c3,c7]]` cite approved claims; `[[calc: c3*0.15]]` is a calculation over claims (re-run, and the result must match the line);
+`[[logic]]` is reasoning and **can never justify a number**; `[[eg]]` marks an invented figure in a worked example; `[verify: …]` is a note for the editor. **The syntax is a parameter**
+(`tags: { open: '{{', close: '}}', claim: 's', … }`): `[[c3]]` is only the default. Every factual line is checked, including bullets, quotes and table rows. Headings, code fences and
+everything under `## Sources` are not. Small counts with a unit ("12 years", "three postings") are figures too (`countUnits` adds yours).
+
+Violation codes: `untagged-figure`, `unknown-claim`, `logic-figure`, `figure-mismatch`, `calc-mismatch`, `calc-no-refs`, `calc-unreadable`. **A formula that cannot be read is a violation**,
+not a way to carry a figure unchecked (the original let it pass). A calculation given only as a list of claims (`[[calc: c1,c2]]`) names its inputs but cannot be re-run: it is
+traced and reported in `warnings`. This checks that a figure is *traceable and matches*, not that the claim is true; when a claim carries several numbers it cannot tell which one the line means
+(use `values` for the period). Offline.
+
+## Links
+
+Is the page really there? **Server-side only** (Node, Bun, Deno): it makes requests, so it is deliberately absent from browser bundles (`"browser": null` in the package's `exports`).
+
+```ts
+import { createLinkChecker } from '@extrafemi-ai/assay/links';
+
+const links = createLinkChecker();
+const report = await links.check(['https://example.com/paper.pdf', 'http://169.254.169.254/latest/meta-data/']);
+report.verdicts.map((v) => [v.url, v.status]);   // [['…/paper.pdf', 'live'], ['http://169.254.169.254/…', 'unsafe']]
+report.summary.text;                              // "Links: 2 · ✓ 1 live · ✕ 1 broken or refused — do not present them as sources."
+```
+
+Statuses: `live`, `broken` (404 or 410: the page is not there), `blocked` (401, 403, 429, 5xx: a site refusing or struggling, **never** treated as broken), `unreachable` (could not connect; says nothing
+about the page), `soft404` (it answered, but landed on the home page or a page titled "not found"), `unsafe` (refused without a request), `limit`. `recheck(report)` checks again what could not be settled.
+
+**This is the module that can hurt you**, because it fetches URLs that came out of AI text, which is shaped by whoever wrote the prompt. A crafted link must never make your server reach your own
+network or your cloud's metadata service. See [SECURITY](SECURITY.md) for what it guarantees and what it does not. In short: the address that is validated is the address that is connected to (so a name
+that answers "public" to a check and "private" to the connection is refused); every redirect hop is re-checked from the URL down; only http and https on ports 80 and 443, no credentials, no `localhost`, no
+`.internal` or single-label names, and only public IP addresses (including every IPv6 way of writing a private IPv4 one). `checkUrl()` and `isSafeAddress()` are exported if you want the rules on their own.
+
+Bounded: 5 seconds per request, 5 redirects, 2 requests at a time to any one host, 25 URLs per call, and only the first 24,000 characters of a page are ever read. A host that fails repeatedly, or sends
+`Retry-After`, is left alone for a while. The default `User-Agent` says what this is; some publishers block anything that is not a browser, which comes back as `blocked`.
+
 ## Quotes
 
 A model asked to back a claim with "an exact quote from the posting" can invent the quote. `checkQuote` checks it against the source text.
@@ -164,7 +297,7 @@ Extracted from [Whetstone](https://whetstone.extrafemi.com), where it runs under
 
 ## Releases
 
-Bump `version` in `package.json`, commit, then push a tag that matches it (for example `git tag v0.2.0 && git push origin v0.2.0`). The release workflow waits for a
+Bump `version` in `package.json`, commit, then push a tag that matches it (for example `git tag v0.3.0 && git push origin v0.3.0`). The release workflow waits for a
 human to approve in the `npm-publish` environment, runs the type check, tests and build, and publishes with npm trusted publishing and
 provenance. No npm token is stored anywhere.
 

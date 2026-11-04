@@ -1,5 +1,6 @@
 export { createAssay } from './check.js';
-export type { Assay, AssayOptions } from './check.js';
+export type { Assay, AssayOptions, RepairChange } from './check.js';
+export type { BreakerOptions, SourceHealth, SourceState } from './health.js';
 export { parseCitations, splitAuthors } from './parse.js';
 export { strip } from './strip.js';
 export { escapeHtml } from './escape.js';

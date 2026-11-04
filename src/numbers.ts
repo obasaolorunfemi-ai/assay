@@ -175,3 +175,57 @@ export function evalFormula(expr: string, values: Record<string, number>): numbe
 export function looksLikeFormula(expr: string): boolean {
   return /[+\-*/()]/.test(String(expr ?? ''));
 }
+
+// ── Numbers by kind ──────────────────────────────────────────────────────────────────────────────────────────────────────
+// A $14bn total, a ₦645 rate and a 62% ratio are different KINDS of figure, so they are never compared with each other.
+
+// Every repetition is bounded (a figure longer than about 40 characters is not a figure): an unbounded `\d[\d,]*` followed by a suffix that usually fails is quadratic on a long run of digits.
+const PLAIN_NUM_RE = /([₦$€£])?\s?(\d[\d,]{0,40}(?:\.\d{1,20})?)\b(?!\s?(?:bn|billion|m\b|million|trillion|%|percent))/gi;
+const SCALED_NUM_RE = /[₦$€£]?\s?(\d[\d,]{0,40}(?:\.\d{1,20})?)\s?(bn|billion|m\b|million|trillion)\b/gi;
+const PERCENT_RE = /(\d[\d,]{0,40}(?:\.\d{1,20})?)\s?(?:%|percent\b)/gi;
+const SCALE: Record<string, number> = { bn: 1e9, billion: 1e9, m: 1e6, million: 1e6, trillion: 1e12 };
+const plainNum = (s: string) => Number(String(s).replace(/,/g, ''));
+
+/** Plain numbers: the shape a rate, a price or a count has (₦645, 1,518). A bare four-digit number with no currency symbol, in 1900 to 2099, is a year, and left out (see `extractYears`). */
+export function extractPlainNumbers(text: string): number[] {
+  const out: number[] = [];
+  for (const m of String(text ?? '').matchAll(PLAIN_NUM_RE)) {
+    const v = plainNum(m[2]!);
+    if (!Number.isFinite(v)) continue;
+    if (!m[1] && /^\d{4}$/.test(m[2]!) && v >= 1900 && v <= 2099) continue;
+    out.push(v);
+  }
+  return out;
+}
+/** Scaled totals, fully expanded: "$14.06 billion" is 14060000000. */
+export function extractScaledNumbers(text: string): number[] {
+  const out: number[] = [];
+  for (const m of String(text ?? '').matchAll(SCALED_NUM_RE)) {
+    const v = plainNum(m[1]!), scale = SCALE[m[2]!.toLowerCase()];
+    if (Number.isFinite(v) && scale) out.push(v * scale);
+  }
+  return out;
+}
+/** Percentages, kept as percentages: 62.23% is 62.23, not 0.6223. */
+export function extractPercents(text: string): number[] {
+  const out: number[] = [];
+  for (const m of String(text ?? '').matchAll(PERCENT_RE)) { const v = plainNum(m[1]!); if (Number.isFinite(v)) out.push(v); }
+  return out;
+}
+
+export interface TypedNumbers { plain: number[]; scaled: number[]; percent: number[] }
+/** Every number in the text, kept apart by kind. */
+export function extractTypedNumbers(text: string): TypedNumbers {
+  return { plain: extractPlainNumbers(text), scaled: extractScaledNumbers(text), percent: extractPercents(text) };
+}
+export const hasAnyNumber = (t: TypedNumbers): boolean => t.plain.length + t.scaled.length + t.percent.length > 0;
+
+/** Does any number in `a` match a number of the same kind in `b`, within a relative tolerance (default 5%)? */
+export function numbersOverlap(a: TypedNumbers, b: TypedNumbers, tolerance = 0.05): boolean {
+  for (const kind of ['plain', 'scaled', 'percent'] as const) {
+    for (const x of a[kind]) for (const y of b[kind]) {
+      if (Math.abs(x - y) / Math.max(Math.abs(y), 1e-9) <= tolerance) return true;
+    }
+  }
+  return false;
+}

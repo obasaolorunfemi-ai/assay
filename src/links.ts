@@ -1,13 +1,14 @@
 import type { Http } from './http.js';
 import type { Citation } from './types.js';
 import { titleSimilarity, TITLE_MATCH_THRESHOLD } from './text.js';
+import { cap, trimEndBy } from './strutil.js';
 
 export const DOI_PATTERN = /10\.\d{4,9}\/[^\s"<>\]]+/i;
 const encDoi = (d: string) => encodeURIComponent(d).replace(/%2F/gi, '/');
 
 export function doiFromUrl(url: string): string {
-  const m = (url || '').match(/doi\.org\/(10\.\d{4,9}\/[^\s"<>\]]+)/i);
-  return m ? m[1]!.replace(/[.,;:)]+$/, '') : '';
+  const m = cap(url || '', 2000).match(/doi\.org\/(10\.\d{4,9}\/[^\s"<>\]]{1,500})/i);
+  return m ? trimEndBy(m[1]!, (c) => '.,;:)'.includes(c)) : '';
 }
 
 export type LinkKind = { kind: 'none' | 'search' | 'direct' } | { kind: 'doi'; doi: string } | { kind: 'pubmed'; pmid: string };
@@ -18,12 +19,12 @@ export type LinkKind = { kind: 'none' | 'search' | 'direct' } | { kind: 'doi'; d
  * link cannot be read from a browser (the sites do not allow it), so it is reported as not checked.
  */
 export function linkKind(url: string): LinkKind {
-  url = url || '';
+  url = cap(url || '', 2000);
   if (!url) return { kind: 'none' };
-  if (/scholar\.google\.[a-z.]+\/scholar\?/i.test(url)) return { kind: 'search' };
+  if (/scholar\.google\.[a-z.]{1,30}\/scholar\?/i.test(url)) return { kind: 'search' };
   const d = doiFromUrl(url);
   if (d) return { kind: 'doi', doi: d };
-  let m = url.match(/ssrn\.com\/(?:[^\s"]*?)abstract(?:_id)?=(\d{4,9})/i);
+  let m = url.match(/ssrn\.com\/(?:[^\s"]{0,300}?)abstract(?:_id)?=(\d{4,9})/i);
   if (m) return { kind: 'doi', doi: '10.2139/ssrn.' + m[1] };
   m = url.match(/arxiv\.org\/(?:abs|pdf)\/([a-z-]+\/\d{7}|\d{4}\.\d{4,5})/i);
   if (m) return { kind: 'doi', doi: '10.48550/arXiv.' + m[1] };

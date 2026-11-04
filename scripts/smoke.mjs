@@ -2,6 +2,10 @@
 import * as root from '@extrafemi-ai/assay';
 import * as quotes from '@extrafemi-ai/assay/quotes';
 import * as figures from '@extrafemi-ai/assay/figures';
+import * as gate from '@extrafemi-ai/assay/gate';
+import * as values from '@extrafemi-ai/assay/values';
+import * as grounding from '@extrafemi-ai/assay/grounding';
+import * as links from '@extrafemi-ai/assay/links';
 
 const need = (cond, msg) => { if (!cond) { console.error('SMOKE FAILED:', msg); process.exit(1); } };
 
@@ -17,4 +21,23 @@ need(figures.checkFigures('We reached 5,000 people.', 'We trained 40 women.').ok
 need(figures.checkFigures('We trained 40 women.', 'We trained 40 women.').ok === true, 'checkFigures passes a supported one');
 need(figures.evalFormula('(c3-c7)/c7*100', { c3: 1518, c7: 645 }) > 135, 'evalFormula');
 
-console.log('smoke ok:', Object.keys(root).length, 'root exports,', Object.keys(quotes).length, 'quotes,', Object.keys(figures).length, 'figures');
+need(typeof gate.createGate === 'function' && typeof gate.summariseRecency === 'function' && gate.rules && gate.defaultPolicy, 'gate exports');
+const g = gate.createGate({ rules: [gate.rules.estimatesCausalLegalNeedSpecialist] });
+need(g.check([{ text: 'Delays cost traders an estimated $4m.', category: 'loss-estimate', sources: [{ url: 'https://reuters.com/x', date: '2020-01-01' }] }]).ok === false, 'gate drops an under-sourced estimate');
+need(g.check([{ text: 'A strike happened.', category: 'event', sources: [{ url: 'https://reuters.com/x', date: '2020-01-01' }] }]).ok === true, 'gate passes an ordinary event');
+need(typeof values.createValues === 'function' && typeof values.reconcile === 'function' && values.worldBank && values.imf && typeof values.seededSource === 'function', 'values exports');
+const rv = values.reconcile({ value: 19.5e9, unit: 'USD', period: 2023, geo: 'NGA' }, { source: 'World Bank', indicatorId: 'X', unit: 'USD', points: [{ year: 2023, value: 19_549_549_365 }] });
+need(rv.state === 'verified', 'reconcile verifies a matching figure');
+need(values.reconcile({ value: 19.5e9, unit: 'USD', period: 2024, geo: 'NGA' }, { source: 'World Bank', indicatorId: 'X', unit: 'USD', points: [{ year: 2023, value: 19_549_549_365 }] }).state === 'period-unmatched', 'reconcile will not compare another year');
+need(typeof grounding.checkGrounding === 'function' && typeof grounding.stripTags === 'function', 'grounding exports');
+need(grounding.checkGrounding('The rate moved to ₦425 in 2023 [[c1]].', [{ ref: 1, text: 'The official rate averaged ₦645.19 in 2023.' }]).ok === false, 'grounding flags a figure that does not match its claim');
+need(grounding.checkGrounding('The rate averaged ₦645 in 2023 [[c1]].', [{ ref: 1, text: 'The official rate averaged ₦645.19 in 2023.' }]).ok === true, 'grounding passes a matching figure');
+need(typeof links.createLinkChecker === 'function' && typeof links.checkUrl === 'function' && typeof links.isSafeAddress === 'function', 'links exports');
+need(links.isSafeAddress('::ffff:7f00:1') === false && links.isSafeAddress('169.254.169.254') === false && links.isSafeAddress('8.8.8.8') === true, 'isSafeAddress');
+need(links.checkUrl('http://localhost/').ok === false && links.checkUrl('https://example.com/x').ok === true, 'checkUrl');
+const lv = await links.createLinkChecker().checkOne('http://169.254.169.254/latest/meta-data/');
+need(lv.status === 'unsafe', 'the link checker refuses the metadata address without a request');
+const a = root.createAssay();
+need(['check', 'verify', 'recheck', 'repair', 'health', 'parse'].every((k) => typeof a[k] === 'function'), 'Assay methods');
+
+console.log('smoke ok:', Object.keys(root).length, 'root exports,', Object.keys(quotes).length, 'quotes,', Object.keys(figures).length, 'figures,', Object.keys(gate).length, 'gate');

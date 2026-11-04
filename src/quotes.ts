@@ -5,6 +5,7 @@
    there can still be out of context ("is available" cut from "is available only to staff"): that is for a person to judge. */
 import type { Bucket, Summary } from './types.js';
 import { summarizeBuckets } from './summary.js';
+import { trimBy, trimEndBy } from './strutil.js';
 
 /** Quotes shorter than this prove nothing ("sponsorship" is in almost every posting). */
 export const DEFAULT_MIN_QUOTE_CHARS = 12;
@@ -46,7 +47,7 @@ export function checkQuote(source: string, quote: string | null | undefined, opt
   const min = opts.minChars ?? DEFAULT_MIN_QUOTE_CHARS;
   const raw = quote ?? '';
   if (!raw.trim()) return { quote: raw, status: 'empty', bucket: 'failed', message: 'No quote was given.' };
-  const q = canon(raw).replace(/^["']+|["']+$/g, '').replace(/[.…]+$/, '').trim();
+  const q = trimEndBy(trimBy(canon(raw), (c) => c === '"' || c === "'"), (c) => c === '.' || c === '…').trim();
   if (q.length < min) return { quote: raw, status: 'too-short', bucket: 'failed', message: `A quote of ${q.length} characters proves nothing: it would match almost any text. Quote a whole sentence (at least ${min} characters).` };
   const text = canon(String(source ?? ''));
   let from = 0;

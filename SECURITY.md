@@ -32,7 +32,26 @@ Assay sends requests to free, shared services on behalf of whoever calls it. `ma
 
 ## Which parts touch the network
 
-Only **citations** does. `quotes` and `figures` compare text with material you supply and have no network access: a test fails if they, or anything they import, could reach one. That makes them the ones to use on private text. They also take text of any size without a pattern that backtracks badly (a megabyte of digits, brackets and repeated words each ran in milliseconds), and `evalFormula` is bounded in length and nesting and never uses `eval` or `Function`.
+Only **citations** and **values** touch the network. `quotes`, `figures`, `gate` and `grounding` compare text with material you supply and have no network access: a test fails if they, or anything they import, could reach one. That makes them the ones to use on private text. They also take text of any size without a pattern that backtracks badly (a megabyte of digits, brackets and repeated words each ran in milliseconds), and `evalFormula` is bounded in length and nesting and never uses `eval` or `Function`.
+
+## The link checker (`@extrafemi-ai/assay/links`)
+
+This is the one module that makes requests to addresses it did not choose, so read this before you use it.
+
+**What it guarantees**
+- **The checked address is the connected address.** Every address a host name resolves to is validated inside the DNS lookup the connection itself uses. There is no check followed by a second resolution, so a name that answers "public" to a check and "private" to the connection (DNS rebinding) is refused. A name is refused if *any* address it resolves to is not public.
+- **Every redirect hop is re-checked**, from the URL down, before it is followed. Redirects are followed by hand, up to 5.
+- **Only public addresses.** IPv4: loopback, private, link-local (which includes the cloud metadata address), carrier-grade NAT, documentation, benchmarking, multicast and reserved ranges are refused. IPv6: only global unicast is allowed, and every form that wraps an IPv4 address (`::ffff:7f00:1`, NAT64, 6to4, the deprecated `::a.b.c.d`) is judged by the IPv4 address inside it; Teredo, unique-local, link-local and documentation ranges are refused. Disguised forms (`2130706433`, `0x7f.1`, octal) are refused. The IPv4 ranges are tested against Node's own `net.BlockList`.
+- **Only `http` and `https`, ports 80 and 443 by default, no credentials in the URL, and no `localhost`, `.local`, `.internal`, `.lan` or single-label names.**
+- **Bounded.** 5 seconds per request, 5 redirects, 2 concurrent requests per host, 25 URLs per call, and only the first 24,000 characters of a page are ever read (the connection is then dropped). A flood of links cannot become a flood of requests.
+- **Fails closed.** Anything it cannot parse is refused. A refused URL is never requested.
+
+**What it does not do**
+- It does not stop a **public** address from being fetched. If you point it at text from an attacker, the attacker can make your server request any public page (and learn, from the verdict, whether it is there). Do not return the raw status of arbitrary URLs to an untrusted caller without rate limiting them.
+- It checks that a page is *there*, not that it says what a citation claims.
+- It does not guard the network around it: egress filtering on your host is still the right second layer. If your platform can reach private networks, also block them at the platform.
+- `unsafeOverrides` exists for tests and removes these rules. Never use it with links from a model or a user.
+- Redirect targets and response headers come from the other server and are treated as untrusted: the checker reads only the status, `Location` and `Retry-After`.
 
 ## What it does with untrusted text
 
@@ -40,4 +59,4 @@ The text it reads is usually written by an AI model, so it treats it as hostile.
 of square-bracket tags; those values are put into the query string of a request to a fixed list of hosts and are URL-encoded. It never
 fetches a URL taken from the text: the only links it follows are DOI, SSRN, arXiv and PubMed identifiers, rebuilt into requests to
 `crossref.org`, `doi.org`, `datacite.org` and `ncbi.nlm.nih.gov`. A DOI offered as a fix (`suggestedDoi`) is only ever a well-formed DOI.
-The parser was run on a million characters of nested brackets, unclosed tags, and tags full of quotes and dashes: each took a few milliseconds, so there is no catastrophic backtracking in it. If you render a verdict's `message` or a record's `title` as HTML, use `escapeHtml()` or `textContent`: they contain text from the web.
+**Hostile text is tested for, not assumed away.** CodeQL flagged "polynomial regular expression" patterns in 0.3.0 development, and measuring confirmed ten places where doubling a long run of spaces, digits, dots or commas quadrupled the time (author splitting, typed-number extraction, quote trimming, tag stripping, DOI trimming, and one algorithmic case in the gate that built a suffix string for every label of a 24,000-dot host). All are fixed: repetitions are bounded, trimming uses linear helpers (`strutil.ts`), and a host longer than 253 characters is not a host. A permanent test (`redos.test.ts`) runs every public function against 24 awkward input families and fails if any takes more than 300 ms at 30,000 characters. If you render a verdict's `message` or a record's `title` as HTML, use `escapeHtml()` or `textContent`: they contain text from the web.
