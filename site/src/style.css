@@ -165,3 +165,12 @@ pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
 .notfound h1 { font-size: clamp(2.2rem, 1.5rem + 3vw, 4rem); margin: .4rem 0 .6rem; }
 @media print { .sitebar, .skip, .actions, .tool { display: none !important; } body { background: #fff; color: #000; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+details { margin-top: auto; }
+summary { cursor: pointer; font-size: .9rem; font-weight: 600; color: var(--ac); min-height: 2.75rem; display: flex; align-items: center; }
+details[open] summary { margin-bottom: .5rem; }
+.parts { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: .6rem; }
+.prose .parts { padding-left: 0; }
+.parts li { display: flex; flex-direction: column; gap: .15rem; padding: .85rem 1rem; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); margin: 0; }
+.parts a { font-weight: 600; }
+.parts span { color: var(--ink-2); font-size: .95rem; }

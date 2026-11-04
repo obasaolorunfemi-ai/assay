@@ -199,22 +199,25 @@ const dropSub = (text, heading) => {
 /* ---------- page furniture ---------- */
 const PAGES = {
   home: ['/', 'Home'],
-  checks: ['/checks/', 'The checks'],
   try: ['/try/', 'Try it'],
+  start: ['/start/', 'Get started'],
+  checks: ['/checks/', 'Reference'],
+  paper: ['/paper/', 'Technical paper'],
   heal: ['/self-healing/', 'Self-healing'],
   limits: ['/limits/', 'Limits'],
   security: ['/security/', 'Security'],
   changelog: ['/changelog/', 'Changelog'],
 };
-const NAV = ['checks', 'try', 'heal', 'limits', 'security', 'changelog'];
+const NAV = ['try', 'start', 'checks', 'paper'];
+const PAPER = ['heal', 'limits', 'security', 'changelog'];
 const THEME_BTN = '<button type="button" class="icon-btn" id="theme" aria-label="Switch to dark mode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>';
 const MENU_BTN = '<button type="button" class="icon-btn menu-btn" id="menu" aria-expanded="false" aria-controls="sections" aria-label="Open menu"><svg class="i-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="i-close" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
-const sitebar = (key) => `<div class="col sitebar-in"><a class="brand" href="/">Assay</a><nav class="sections" id="sections" aria-label="Site">${NAV.map((k) => `<a href="${PAGES[k][0]}"${k === key ? ' aria-current="page"' : ''}>${PAGES[k][1]}</a>`).join('')}<a href="${GH}">GitHub</a><a href="${NPM}">npm</a></nav>${THEME_BTN}${MENU_BTN}</div>`;
+const sitebar = (key) => `<div class="col sitebar-in"><a class="brand" href="/">Assay</a><nav class="sections" id="sections" aria-label="Site">${NAV.map((k) => `<a href="${PAGES[k][0]}"${k === key || (k === 'paper' && PAPER.includes(key)) ? ' aria-current="page"' : ''}>${PAGES[k][1]}</a>`).join('')}<a href="${GH}">GitHub</a><a href="${NPM}">npm</a></nav>${THEME_BTN}${MENU_BTN}</div>`;
 const foot = `<footer class="site-foot"><div class="col"><div class="foot-grid">
-<div><h2>The checks</h2><ul>${CHECKS.map(([n]) => `<li><a href="/checks/#${slug(n)}">${n}</a></li>`).join('')}</ul></div>
-<div><h2>Read</h2><ul><li><a href="/try/">Try it</a></li><li><a href="/self-healing/">Self-healing</a></li><li><a href="/limits/">Limits</a></li><li><a href="/security/">Security</a></li><li><a href="/changelog/">Changelog</a></li></ul></div>
+<div><h2>Use it</h2><ul><li><a href="/try/">Try it in your browser</a></li><li><a href="/start/">Get started</a></li><li><a href="/checks/">Reference</a></li></ul></div>
+<div><h2>Technical paper</h2><ul><li><a href="/paper/">Overview</a></li><li><a href="/self-healing/">Self-healing</a></li><li><a href="/limits/">Limits</a></li><li><a href="/security/">Security</a></li><li><a href="/changelog/">Changelog</a></li></ul></div>
 <div><h2>Project</h2><ul><li><a href="${GH}">GitHub</a></li><li><a href="${NPM}">npm</a></li><li><a href="https://lodestone.extrafemi.com">Lodestone</a>, its sibling</li><li><a href="https://whetstone.extrafemi.com">Whetstone</a>, where it runs</li></ul></div>
-</div><p class="foot-note">Assay ${esc(pkg.version)}, MIT. Lodestone keeps the model call working; Assay checks what came back. The examples on this site are produced by running the library when the site is built.</p></div></footer>`;
+</div><p class="foot-note">Assay ${esc(pkg.version)}, free and open source (MIT). Lodestone keeps the AI call working; Assay checks what came back. The examples on this site are produced by running the library when the site is built.</p></div></footer>`;
 
 const sums = createHash('sha256');
 for (const f of ['style.css', 'theme.js', 'menu.js', 'demo.js']) sums.update(readFileSync(join(src, f)));
@@ -253,46 +256,61 @@ ${foot}
 </html>
 `;
 }
-const doc = (h1, lede, inner) => `<main class="col page" id="main"><h1>${h1}</h1><p class="lede">${lede}</p><div class="prose">${inner}</div></main>`;
+const doc = (h1, lede, inner, kicker = '') => `<main class="col page" id="main">${kicker ? `<p class="tag"><a href="/paper/">Technical paper</a> · ${kicker}</p>` : ''}<h1>${h1}</h1><p class="lede">${lede}</p><div class="prose">${inner}</div></main>`;
 
 /* ---------- the pages ---------- */
 const outputBlock = (o) => `<div class="out ${o.cls}"><strong>${esc(o.head)}</strong><p>${esc(o.text)}</p>${o.cap ? `<p class="cap">${esc(o.cap)}</p>` : ''}</div>`;
-const card = (e) => `<article class="card" id="ex-${slug(e.name)}"><h3>${e.name}</h3><p class="tag">compares the text with ${esc(e.against)}</p><p class="what">${esc(e.what)}</p><pre><code>${esc(e.code)}</code></pre>${outputBlock(e.out)}<p class="imp">${esc(`import … from '${importPath(e.sub)}'`)} · ${e.net ? 'uses the network' : 'offline'}</p></article>`;
-const netBadge = (n) => `<span class="net ${n ? 'yes' : 'no'}">${n ? 'network' : 'offline'}</span>`;
 
+const story = (e, title, said) => `<article class="card" id="ex-${slug(e.name)}"><h3>${title}</h3><p class="what">${said}</p><div class="out ${e.out.cls}"><strong>Assay says</strong><p>${esc(e.out.text.replace(/^[a-z]+(-[a-z]+)+: /, ''))}</p></div><details><summary>Show the code</summary><pre><code>${esc(e.code)}</code></pre><p class="imp">${esc(`import … from '${importPath(e.sub)}'`)}</p></details></article>`;
+const ex = (n) => EXAMPLES.find((e) => e.name === n);
+const PICK = [
+  ['Is this paper real?', 'Citations', 'Looks it up online'],
+  ['Is this quote really in the source?', 'Quotes', 'Nothing leaves your device'],
+  ['Did I make up a number?', 'Figures', 'Nothing leaves your device'],
+  ['Is each claim backed by a source good enough to state it?', 'Gate', 'Nothing leaves your device'],
+  ['Does every number in the draft trace to a fact I approved?', 'Grounding', 'Nothing leaves your device'],
+  ['Is this figure right for that year?', 'Values', 'Looks it up online'],
+  ['Does this link still work?', 'Links', 'Looks it up online, from a server'],
+];
 const home = `<main id="main">
 <section class="col hero">
-<p class="tag">${esc(pkg.name)} · ${esc(pkg.version)} · MIT · no dependencies</p>
-<h1>Catch the invented citation before anyone relies on it.</h1>
-<p class="lede">Assay checks AI-written text against evidence: a citation against the public record, a quote against its source, a number against the materials you gave. It is a set of separate checks, and each one says what it compared the text with.</p>
-<div class="actions"><span class="install">npm install ${esc(pkg.name)}</span><a class="pill solid" href="/try/">Try the offline checks</a><a class="pill" href="/checks/">Read the checks</a><a class="pill" href="${GH}">GitHub</a></div>
+<p class="tag">Free and open source · MIT</p>
+<h1>AI writes with total confidence. Sometimes it makes things up.</h1>
+<p class="lede">Assay reads what the AI wrote and tells you which citations are not real papers, which quotes are not in the source, and which numbers nobody gave it. You decide what to publish.</p>
+<div class="actions"><a class="pill solid" href="/try/">Try it now</a><a class="pill" href="/start/">Add it to your app</a></div>
+<p class="tag">The checks that use your own text run in your browser and send nothing anywhere.</p>
 </section>
 <section class="band"><div class="col">
-<h2>Seven checks, never run together</h2>
-<p class="sub">They apply to different things, so each is its own module with its own entry point. Use the ones your scenario needs. The ones that compare against your own material or policy never touch the network, and a test enforces that, so they are safe to run on private text such as a CV.</p>
-<div class="table-wrap"><table><thead><tr><th>Check</th><th>Compares the text with</th><th>Network</th><th>Import</th></tr></thead><tbody>
-${CHECKS.map(([n, c, net, sub]) => `<tr><td><a href="/checks/#${slug(n)}">${n}</a></td><td>${esc(c)}</td><td>${netBadge(net)}</td><td>${esc(importPath(sub))}</td></tr>`).join('\n')}
+<h2>Where AI goes wrong</h2>
+<p class="sub">The last four are real runs: Assay checked the text described, when this page was built. Open “Show the code” to see the call.</p>
+<div class="cards">
+<article class="card"><h3>A paper that does not exist</h3><p class="what">Asked for sources, AI models write convincing ones: a real author with a title they never wrote, or a link that goes to a different paper. In a test of free models, some citations were invented outright.</p><div class="out good"><strong>Assay says</strong><p>It looks each citation up in public records of papers and books, and says found, look again, or not found. If a record service is down, it says it could not look. It never calls that “not found”.</p></div></article>
+${story(ex('Quotes'), 'A quote nobody wrote', `You asked for an exact quote from a job posting. The AI wrote “Relocation is available for all staff.” The posting says relocation is for senior staff only.`)}
+${story(ex('Figures'), 'A number from nowhere', `Your draft says “5,000 beneficiaries”. The brief you gave the AI never mentions that number, but it does mention 40% and three districts.`)}
+${story(ex('Grounding'), 'A number tied to the wrong fact', `The AI says the rate moved to ₦425 and tags the line as coming from a fact that says ₦645.19.`)}
+${story(ex('Values'), 'The right source, the wrong year', `A draft says Nigerian remittances reached $25 billion in 2023. The World Bank figure for that year is about $19.5 billion.`)}
+</div>
+</div></section>
+<section class="band"><div class="col">
+<h2>Which check do you need?</h2>
+<p class="sub">Assay is seven separate checks, because they answer different questions. Use the one that fits. They are not meant to run all at once.</p>
+<div class="table-wrap"><table><thead><tr><th>The question</th><th>The check</th><th>Does it send anything out?</th></tr></thead><tbody>
+${PICK.map(([q, n, w]) => `<tr><td>${q}</td><td><a href="/checks/#${slug(n)}">${n}</a></td><td>${w}</td></tr>`).join('\n')}
 </tbody></table></div>
 </div></section>
 <section class="band"><div class="col">
-<h2>What it says when it catches something</h2>
-<p class="sub">Each of these ran when this page was built, on the code shown. Every check answers the same way: a verdict for each item in plain words, a one-line summary, and an <em>ok</em> flag.</p>
-<div class="cards">${EXAMPLES.map(card).join('\n')}</div>
-</div></section>
-<section class="band"><div class="col">
-<h2>It does not accuse when it could not look</h2>
-<p class="sub">The sources are free and shared, and they break. None of that may turn into an accusation against a citation, and none of it should need a person to notice.</p>
+<h2>Why a red mark is worth believing</h2>
 <div class="cards">
-<article class="card"><h3>A changed reply is an outage</h3><p class="what">A reply that is not the shape a source normally sends, such as an HTML error page or a renamed field, is <em>unavailable</em>. It is never read as "no results".</p></article>
-<article class="card"><h3>A source is tested first</h3><p class="what">Before anyone is told "not found", the source is asked for a work that certainly exists. If it cannot find that, its answer is discarded.</p></article>
-<article class="card"><h3>A failing source is left alone</h3><p class="what">Three failures, or a Retry-After, and it is not asked for a while. Then one request is let through to see whether it has recovered.</p></article>
-<article class="card"><h3>An old answer beats "could not tell"</h3><p class="what">A conclusive result is kept for a week, and returned marked stale if the sources are down when it expires.</p></article>
+<article class="card"><h3>It says what it compared against</h3><p class="what">Every result names the thing it checked the text with: a public record, your own source text, a list of facts you approved.</p></article>
+<article class="card"><h3>It does not accuse when it could not look</h3><p class="what">Free record services get busy or break. When that happens Assay says “could not check”, and tries again later. It keeps earlier answers and uses them, marked as old, until the service is back.</p></article>
+<article class="card"><h3>It is honest about its limits</h3><p class="what">It can show that a source exists, not that the source says what the sentence claims. Books and reports are thinly covered, so a real work can come back as not found. <a href="/limits/">Read the limits.</a></p></article>
 </div>
-<p class="actions"><a class="pill" href="/self-healing/">How self-healing works</a><a class="pill" href="/limits/">What it cannot do</a></p>
 </div></section>
 <section class="band"><div class="col">
-<h2>Where it comes from</h2>
-<p class="sub">Extracted from <a href="https://whetstone.extrafemi.com">Whetstone</a>, where it runs under every reply, and built to sit next to <a href="https://lodestone.extrafemi.com">Lodestone</a>: Lodestone keeps the model call working, Assay checks what came back. It proves a source <em>exists</em>, not that it says what the sentence claims, and the <a href="/limits/">limits page</a> says where it falls short.</p>
+<h2>Add it to your app in a minute</h2>
+<p class="sub">For developers. It is a small package with no dependencies that runs on Node 20 or later, in browsers and on Cloudflare Workers.</p>
+<pre><code>npm install ${esc(pkg.name)}</code></pre>
+<p class="actions"><a class="pill solid" href="/start/">Get started</a><a class="pill" href="/checks/">Reference</a><a class="pill" href="/paper/">Technical paper</a></p>
 </div></section>
 </main>`;
 
@@ -310,12 +328,86 @@ const checkSections = CHECKS.map(([n]) => {
   return `<h2 id="${slug(n)}">${n}</h2>\n${md(body, { minLevel: 2 })}`;
 }).join('\n');
 const toc = `<ul class="toc">${CHECKS.map(([n]) => `<li><a href="#${slug(n)}">${n}</a></li>`).join('')}</ul>`;
-const checksPage = doc('The checks', 'Seven separate checks. Each compares the text with a different thing, so each has its own entry point.', `${toc}${md(checksOverview.split('\n').filter((l) => l.startsWith('|')).join('\n'))}${checkSections}`);
+const checksPage = doc('Reference', 'Every check, with its options, statuses and messages. Seven separate checks: each compares the text with a different thing, so each has its own entry point.', `${toc}${md(checksOverview.split('\n').filter((l) => l.startsWith('|')).join('\n'))}${checkSections}`);
 
-const healPage = doc('Self-healing', 'How the citation and value checks keep working when the free sources they rely on do not.', md(readme.split('### Self-healing\n')[1].split('\n## ')[0].trim(), { minLevel: 2 }));
-const limitsPage = doc('What it cannot do', 'Read this before you trust a green tick.', `${md(section(readme, 'What it cannot do').replace(/^Read this before you trust a green tick\.\n*/, ''))}<h2 id="privacy">Privacy</h2>${md(section(readme, 'Privacy'))}`);
-const securityPage = doc('Security', 'Reporting a problem, how the package is published and protected, and what the link checker guarantees.', md(readFileSync(join(root, 'SECURITY.md'), 'utf8')));
-const changelogPage = doc('Changelog', 'What changed, release by release.', md(readFileSync(join(root, 'CHANGELOG.md'), 'utf8')));
+const healPage = doc('Self-healing', 'How the citation and value checks keep working when the free sources they rely on do not.', md(readme.split('### Self-healing\n')[1].split('\n## ')[0].trim(), { minLevel: 2 }), 'how it keeps working');
+const limitsPage = doc('What it cannot do', 'Read this before you trust a green tick.', `${md(section(readme, 'What it cannot do').replace(/^Read this before you trust a green tick\.\n*/, ''))}<h2 id="privacy">Privacy</h2>${md(section(readme, 'Privacy'))}`, 'what it cannot do');
+const securityPage = doc('Security', 'Reporting a problem, how the package is published and protected, and what the link checker guarantees.', md(readFileSync(join(root, 'SECURITY.md'), 'utf8')), 'security');
+const changelogPage = doc('Changelog', 'What changed, release by release.', md(readFileSync(join(root, 'CHANGELOG.md'), 'utf8')), 'changelog');
+
+
+const startMd = `## 1. Install
+
+\`\`\`
+npm install ${pkg.name}
+\`\`\`
+
+## 2. Pick the check that fits
+
+### You ask an AI to write with sources: check the citations
+
+\`\`\`
+import { createAssay, strip } from '${pkg.name}';
+
+const assay = createAssay({ mailto: 'you@example.org' });   // lets the record services contact you instead of blocking you
+const report = await assay.check(aiText);
+
+report.summary.text;                 // "Citations: 3 · ✓ 2 verified · ✕ 1 not verified"
+report.ok;                           // false if any citation failed
+const clean = strip(aiText, report); // failed citations become "[citation removed: could not be verified]"
+\`\`\`
+
+### You ask an AI to write from your own documents (a CV, a brief, a call): check quotes and numbers
+
+\`\`\`
+import { checkQuote } from '${pkg.name}/quotes';
+import { checkFigures } from '${pkg.name}/figures';
+
+checkQuote(jobPosting, 'Visa sponsorship is available for this role');   // found, or missing
+checkFigures(draft, [cv, brief]).summary.text;                           // "Figures: 3 · ✓ 2 supported · ✕ 1 not in your materials"
+\`\`\`
+
+These two never touch the network, so they are safe to run on private text.
+
+### You publish claims that need a good source: use the gate
+
+\`\`\`
+import { createGate, rules } from '${pkg.name}/gate';
+
+const gate = createGate({ rules: [rules.estimatesCausalLegalNeedSpecialist] });
+gate.check([{ text: 'Delays cost traders an estimated $400m.', category: 'loss-estimate', sources: [{ url: 'https://reuters.com/x', date: '2026-01-01' }] }]);
+\`\`\`
+
+### Your draft tags each line with the approved fact it came from: check the grounding
+
+\`\`\`
+import { checkGrounding } from '${pkg.name}/grounding';
+
+checkGrounding('The rate moved to ₦425 in 2023 [[c1]].', [{ ref: 1, text: 'The official rate averaged ₦645.19 in 2023.' }]);
+\`\`\`
+
+## 3. Show the result
+
+Every check answers the same way: \`ok\`, a one-line \`summary.text\`, and a verdict for each item with a \`message\` in plain words. Messages can contain text that came from the web or from a model, so put them on a page with \`textContent\`, or run \`escapeHtml()\` (exported) first.
+
+## Good to know
+
+- **Browsers and servers.** Citations, quotes, figures, the gate, grounding and values run anywhere with \`fetch\`: Node 20 or later, browsers, Cloudflare Workers. The link checker is server-side only on purpose.
+- **Be polite to the free services.** Give \`mailto\` so CrossRef and OpenAlex can reach you. OpenAlex also gives each address a small daily budget; a free key from openalex.org lifts it.
+- **Read the limits** before you trust a green tick. [What it cannot do](/limits/).
+- **Every option, every status, every message** is in the [reference](/checks/).`;
+const startPage = doc('Get started', 'Install it, pick the check that fits, read the verdict.', md(startMd, { minLevel: 2 }));
+
+const paperPage = doc('Technical paper', 'For readers who want to know how Assay works, how it fails, and where it stops. The front of this site is for using it; this part is for judging it.', `${md(`## The design in short
+
+- **Separate checks, because the questions differ.** A citation is checked against public records, a quote against your source text, a number against your materials. Each has its own entry point, and nothing runs them all together.
+- **The ones that use your material never go online.** Quotes, figures, the gate and grounding make no requests, and a test fails the build if one of them starts to. Only citations, values and links reach out.
+- **One shape of answer.** A bucket for each item (ok, check, failed, skip), a sentence in plain words, a one-line summary.
+- **“Could not look” is never “not found”.** A broken or throttled source produces *unavailable*, and a source is tested against a work that certainly exists before it is believed.
+- **The link checker is built for hostile input.** It fetches addresses that came out of AI text, so the address it validates is the address it connects to, every redirect is re-checked, and only public addresses are allowed.
+
+## The parts`)}
+<ul class="parts">${[['/self-healing/', 'Self-healing', 'How the citation and value checks keep working when the free sources they rely on throttle, change or go down.'], ['/limits/', 'What it cannot do', 'Where it falls short, in plain terms, and what it does with your data.'], ['/security/', 'Security', 'How the package is published and protected, and what the link checker guarantees.'], ['/changelog/', 'Changelog', 'What changed, release by release.'], ['/checks/', 'Reference', 'Every check, option, status and message.']].map(([h, t, d]) => `<li><a href="${h}">${t}</a><span>${d}</span></li>`).join('')}</ul>`);
 
 const tool = (id, title, intro, fields, run) => `<section class="tool" id="${id}"><h2>${title}</h2><p class="sub tight">${intro}</p>${fields}<div class="results" id="${id}-out" aria-live="polite"></div></section>`;
 const field = (id, label, value, rows = 4) => `<div><label for="${id}">${label}</label><textarea id="${id}" rows="${rows}" spellcheck="false">${esc(value)}</textarea></div>`;
@@ -340,8 +432,10 @@ const put = (path, html) => {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, html);
 };
-put('', page({ path: '/', key: 'home', title: 'Assay: check AI-written text against evidence', desc: 'Separate checks for citations, quotes, figures, sourcing and links in AI-written text. Each says what it compared against, in plain words. MIT, no dependencies.', body: home, ld: homeLd }));
-put('checks', page({ path: '/checks/', key: 'checks', title: 'The checks · Assay', desc: 'Citations, quotes, figures, the source-tier gate, grounding, values and links: what each compares the text with, and how to use it.', body: checksPage }));
+put('', page({ path: '/', key: 'home', title: 'Assay: catch what AI made up', desc: 'Finds invented citations, quotes that are not in the source, and numbers nobody gave the AI. Free, open source, and the checks on your own text run in your browser.', body: home, ld: homeLd }));
+put('start', page({ path: '/start/', key: 'start', title: 'Get started · Assay', desc: 'Install Assay and run the check that fits: citations, quotes, figures, the source gate or grounding.', body: startPage }));
+put('paper', page({ path: '/paper/', key: 'paper', title: 'Technical paper · Assay', desc: 'How Assay works, how it fails and where it stops: design, self-healing, limits, security and changelog.', body: paperPage }));
+put('checks', page({ path: '/checks/', key: 'checks', title: 'Reference · Assay', desc: 'Citations, quotes, figures, the source-tier gate, grounding, values and links: what each compares the text with, every option and every status.', body: checksPage }));
 put('try', page({ path: '/try/', key: 'try', title: 'Try it · Assay', desc: 'Run the offline checks (quotes, figures, grounding) in your browser. Nothing leaves the page.', body: tryPage, scripts: `\n<script type="module" src="/demo.js?v=${V8}"></script>` }));
 put('self-healing', page({ path: '/self-healing/', key: 'heal', title: 'Self-healing · Assay', desc: 'How Assay keeps checking when its free sources throttle, change shape or go down, without turning an outage into an accusation.', body: healPage }));
 put('limits', page({ path: '/limits/', key: 'limits', title: 'What it cannot do · Assay', desc: 'Where Assay falls short: it proves a source exists, not that it says what the sentence claims.', body: limitsPage }));
@@ -367,8 +461,8 @@ for (const f of need) {
   copyFileSync(join(root, 'dist', f), join(out, 'lib', f));
 }
 
-const urls = ['/', '/checks/', '/try/', '/self-healing/', '/limits/', '/security/', '/changelog/'];
+const urls = ['/', '/try/', '/start/', '/checks/', '/paper/', '/self-healing/', '/limits/', '/security/', '/changelog/'];
 writeFileSync(join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE}${u}</loc></url>`).join('\n')}\n</urlset>\n`);
-writeFileSync(join(out, 'llms.txt'), `# Assay\n\n> Checks AI-written text against evidence. A set of separate checks (citations, quotes, figures, gate, grounding, values, links), each saying what it compared the text with. npm: ${pkg.name}. MIT.\n\n- [The checks](${SITE}/checks/): what each compares against and how to use it\n- [Self-healing](${SITE}/self-healing/): how it avoids accusing when a source is down\n- [Limits](${SITE}/limits/): what it cannot do\n- [Security](${SITE}/security/): publishing, protections, link-checker threat model\n- [Changelog](${SITE}/changelog/)\n- [Source](${GH})\n- [Full text](${SITE}/llms-full.txt)\n`);
+writeFileSync(join(out, 'llms.txt'), `# Assay\n\n> Checks AI-written text against evidence. A set of separate checks (citations, quotes, figures, gate, grounding, values, links), each saying what it compared the text with. npm: ${pkg.name}. MIT.\n\n- [Get started](${SITE}/start/): install and recipes\n- [Reference](${SITE}/checks/): every check, option and status\n- [Self-healing](${SITE}/self-healing/): how it avoids accusing when a source is down\n- [Limits](${SITE}/limits/): what it cannot do\n- [Security](${SITE}/security/): publishing, protections, link-checker threat model\n- [Changelog](${SITE}/changelog/)\n- [Source](${GH})\n- [Full text](${SITE}/llms-full.txt)\n`);
 writeFileSync(join(out, 'llms-full.txt'), `${readme}\n\n---\n\n${readFileSync(join(root, 'SECURITY.md'), 'utf8')}`);
 console.log(`site built: ${urls.length + 1} pages, ${need.size} library files for the browser tools, v=${V8}`);
