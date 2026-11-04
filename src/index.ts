@@ -1,0 +1,11 @@
+export { createAssay } from './check.js';
+export type { Assay, AssayOptions } from './check.js';
+export { parseCitations, splitAuthors } from './parse.js';
+export { strip } from './strip.js';
+export type { StripOptions } from './strip.js';
+export { summarize, bucketOf } from './verdict.js';
+export { crossref, openalex, openlibrary, defaultSources } from './sources.js';
+export type { SearchSource, SearchQuery, SearchResult, SourceContext } from './sources.js';
+export { linkKind, doiFromUrl } from './links.js';
+export { titleSimilarity, nameKey } from './text.js';
+export type { Bucket, Candidate, Citation, KeyValueStore, Report, Status, Summary, Verdict } from './types.js';

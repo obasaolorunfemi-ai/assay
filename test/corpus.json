@@ -1,0 +1,152 @@
+[
+ {
+  "tag": "[Coase, 1960, \"The Problem of Social Cost\" — Journal of Law and Economics — https://doi.org/10.1086/294594]",
+  "what": "invented DOI (points to an unrelated 1963 book review)",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Arrow, 1962, \"Economic Welfare and the Allocation of Resources for Invention\" — Quarterly Journal of Economics — https://doi.org/10.2307/1886284]",
+  "what": "invented DOI (points to another work)",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Banerjee et al., 2015, \"The Miracle of Microfinance? Evidence from a Randomized Evaluation\" — American Economic Review]",
+  "what": "real paper",
+  "expect": "ok"
+ },
+ {
+  "tag": "[Kahneman & Tversky, 1979, \"Prospect Theory: An Analysis of Decision under Risk\" — Econometrica — https://doi.org/10.2308/ptri.1979.47.2.263]",
+  "what": "real paper, invented DOI (404)",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Karlan & Zinman, 2011, \"Microcredit in Theory and Practice\" — NBER Working Paper]",
+  "what": "real paper, wrong venue (it is in Science)",
+  "expect": "check"
+ },
+ {
+  "tag": "[Ostrom, 1990, \"Governing the Commons: The Evolution of Institutions for Collective Action\" — Cambridge University Press — https://doi.org/10.1017/CBO9781139369224]",
+  "what": "real book, invented DOI",
+  "expect": "failed"
+ },
+ {
+  "tag": "[North, 1990, \"Institutions, Institutional Change and Economic Performance\" — Cambridge University Press — https://doi.org/10.1017/CBO9781139175076]",
+  "what": "real book, invented DOI",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Acemoglu & Robinson, 2012, \"Why Nations Fail\" — Crown Publishing]",
+  "what": "real book, no link",
+  "expect": "ok"
+ },
+ {
+  "tag": "[Morduch, 1999, \"The Role of Microfinance in Poverty Reduction\" — Journal of Economic Literature — https://scholar.google.com/scholar?q=morduch+role]",
+  "what": "invented title for a real author",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Roodman & Morduch, 2014, \"The Impact of Microfinance: A Review of the Evidence\" — Journal of Economic Literature — https://scholar.google.com/scholar?q=roodman+morduch]",
+  "what": "invented title for real authors",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Dupas & Robinson, 2013, \"Savings Constraints and Microenterprise Returns: Evidence from a Field Experiment\" — Econometrica — https://doi.org/10.3982/ECTA1163]",
+  "what": "near-miss title, wrong journal, invented DOI",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Attanasio & Augsburg, 2011, \"Consumption and Investment Returns to Microenterprise Finance: Evidence from Peru\" — Econometrica — https://doi.org/10.3982/ECTA1035]",
+  "what": "invented paper, invented DOI",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Meyer, 2016, \"The Impact of Microcredit: Evidence from Bosnia and Herzegovina\" — World Development — https://scholar.google.com/scholar?q=meyer+bosnia]",
+  "what": "invented paper and author",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Pitt & Khandker, 1998, \"The Impact of Microcredit on the Poor in Bangladesh: Revisiting the Evidence\" — The World Bank Economic Review — https://scholar.google.com/scholar?q=pitt+khandker]",
+  "what": "invented title for real authors",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Marmot, 2005, \"Social determinants of health\" — UCL Institute of Health Equity — https://www.ucl.ac.uk/ihp/health-determinants/social-determinants]",
+  "what": "real work, direct link cannot be checked",
+  "expect": "check"
+ },
+ {
+  "tag": "[Rose, 1985, \"Sick individuals and sick populations\" — International Journal of Epidemiology — https://doi.org/10.1093/ije/14.1.32]",
+  "what": "real paper, correct DOI",
+  "expect": "ok"
+ },
+ {
+  "tag": "[Dahlgren & Whitehead, 1991, \"Policies and strategies to promote social equity in health\" — Geneva: WHO — https://www.who.int/publications/i/item/9241543951]",
+  "what": "KNOWN FALSE ALARM: a real report that no index holds under this title",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Robert D. Putnam, 2000, \"Bowling Alone: The Collapse and Revival of American Community\" — search: https://scholar.google.com/scholar?q=putnam]",
+  "what": "real book",
+  "expect": "ok"
+ },
+ {
+  "tag": "[Pierre Bourdieu, 1986, \"The Forms of Capital\" — search: https://scholar.google.com/scholar?q=bourdieu]",
+  "what": "real chapter",
+  "expect": "ok"
+ },
+ {
+  "tag": "[James S. Coleman, 1988, \"Social Capital in the Creation of Human Capital\" — search: https://scholar.google.com/scholar?q=coleman]",
+  "what": "real paper",
+  "expect": "ok"
+ },
+ {
+  "tag": "[Alejandro Portes, 1998, \"Social Capital: Its Origins and Applications in Modern Sociology\" — search: https://scholar.google.com/scholar?q=portes]",
+  "what": "real paper",
+  "expect": "ok"
+ },
+ {
+  "tag": "[Mark Granovetter, 1973, \"The Strength of Weak Ties\" — search: https://scholar.google.com/scholar?q=granovetter]",
+  "what": "real paper",
+  "expect": "ok"
+ },
+ {
+  "tag": "[Anthony Giddens, 1984, \"The Constitution of Society: Outline of the Theory of Structuration\" — search: https://scholar.google.com/scholar?q=giddens]",
+  "what": "real book",
+  "expect": "ok"
+ },
+ {
+  "tag": "[Talcott Parsons, 1951, \"The Social System\" — search: https://scholar.google.com/scholar?q=parsons]",
+  "what": "real book",
+  "expect": "ok"
+ },
+ {
+  "tag": "[Randall Collins, 1975, \"Conflict Sociology\" — search: https://scholar.google.com/scholar?q=collins]",
+  "what": "real book",
+  "expect": "ok"
+ },
+ {
+  "tag": "[Obasa & Obasa, 2020, \"The Aspiration Horizon: A New Framework for Understanding Microfinance Demand\" — SSRN — search: https://scholar.google.com/scholar?q=obasa]",
+  "what": "invented paper",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Lesthaeghe & van de Kaa, 1986, \"Two Demographic Transition Models with Different Implications\" — Population and Development Review — search: https://scholar.google.com/scholar?q=lesthaeghe]",
+  "what": "invented English title (the real paper is Dutch)",
+  "expect": "failed"
+ },
+ {
+  "tag": "[Luhmann, 1984, \"Social Systems\" — Stanford University Press — search: https://scholar.google.com/scholar?q=luhmann]",
+  "what": "real book",
+  "expect": "ok"
+ },
+ {
+  "tag": "[CITATION — approximate: Putnam, 1993-2002, social capital and civic engagement — search: https://scholar.google.com/scholar?q=putnam+social+capital]",
+  "what": "approximate, real author and topic",
+  "expect": "check"
+ },
+ {
+  "tag": "[CITATION — approximate: Zorblatt, 2010-2015, quantum remittance theory — search: https://scholar.google.com/scholar?q=zorblatt]",
+  "what": "approximate, invented author",
+  "expect": "failed"
+ }
+]

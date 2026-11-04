@@ -1,0 +1,41 @@
+{
+  "name": "@extrafemi-ai/assay",
+  "version": "0.1.0",
+  "description": "Checks the citations in AI-written text against CrossRef, OpenAlex, Open Library and the DOI registries, so an invented paper or a made-up DOI is caught: a verdict for each citation, a plain-words summary, and a way to mark or remove the ones that failed.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/obasaolorunfemi-ai/assay.git"
+  },
+  "homepage": "https://github.com/obasaolorunfemi-ai/assay",
+  "bugs": {
+    "url": "https://github.com/obasaolorunfemi-ai/assay/issues"
+  },
+  "author": "Extrafemi",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "CHANGELOG.md", "SECURITY.md", "LICENSE"],
+  "sideEffects": false,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "corpus": "npm run build && node scripts/corpus.mjs",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.12"
+  },
+  "keywords": ["citations", "references", "hallucination", "fabrication", "llm", "ai", "doi", "crossref", "openalex", "verification", "fact-checking"],
+  "publishConfig": { "access": "public", "provenance": true }
+}
