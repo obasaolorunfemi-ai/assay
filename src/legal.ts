@@ -56,7 +56,9 @@ export function caseNameBefore(text: string, index: number): string {
     const w = before[i]!;
     if (/^[A-Z0-9]/.test(w) || (connector.test(w) && left.length)) left.unshift(w); else break;
   }
-  while (left.length && connector.test(left[0]!)) left.shift();
+  // Words that introduce a citation in a sentence ("See Brown v. Board…", "Also Roe v. Wade…") are not part of the case name.
+  const signal = /^(?:see|also|and|but|cf\.?|compare|accord|contra|under|in|as|per|cited|citing|e\.g\.?|i\.e\.?|then|thus|hence|here|there|the)$/i;
+  while (left.length && (connector.test(left[0]!) || signal.test(left[0]!))) left.shift();
   const right = window.slice(at + sepLen).trim().split(/\s+/).slice(0, 6).join(' ').replace(/[\s,;]+$/, '');
   return left.length && right ? `${left.join(' ')} v. ${right}` : '';
 }
