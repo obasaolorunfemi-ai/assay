@@ -2,8 +2,11 @@
 
 Versions before 1.0 may change between minor releases; each change that could break a caller is marked **breaking**.
 
-## 0.4.0
+## 0.5.0
 
+**Live counter (opt-in).** `@extrafemi-ai/assay/share` (`shareTally`, `startSharing`) lets an app add its counts to the public counter on the project's home page, and the `tally` option on `createAssay`, `createValues`, `createRetractions`, `createLegal`, `createSupport` and `createLinkChecker` counts what they find. Off unless your code calls it; numbers only, never text; a failed report is never fatal. The counter is a small Cloudflare Worker (`worker/`) with a Durable Object, rate-limited per sender per day, keeping no addresses; it is self-reported and not verified. The home page shows it live.
+
+## 0.4.0
 
 New checks and tools for the gaps the first release named.
 
