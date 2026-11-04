@@ -13,6 +13,8 @@ New checks and tools for the gaps the first release named.
 - **`assay` command line** and a **GitHub Action**.
 - **More sources**: `pubmed` (verified live) and `semanticscholar` (not verified live) for citations; `eurostat` for values (verified live). All opt in.
 - **Fixed: a title with markup no longer reads as a different title.** CrossRef sends some titles with markup and line breaks (`<scp>AI</scp>`), which made a real, correctly cited paper come back as "the title differs". Found by running Assay on the reference lists of its own technical papers. Titles from CrossRef and OpenAlex are now compared as words.
+- **`jsonSource`**: add a citation source with data (an https address, where the records and fields are, a required canary) instead of code. Refuses a description with no canary, a non-https address or a host filled from the search words.
+- **`assay health`** asks every built-in source for a work it must know; a weekly workflow runs it and opens an issue when a source answers wrongly. The README now says plainly which safeguards regulate themselves at run time and which things only a person can update.
 - `Http.json` can now send a header or a POST (used by CourtListener and Semantic Scholar).
 - A benchmark protocol (`docs/benchmark-protocol.md`) and instruments for building one with independent labellers: a blind sheet, Cohen's kappa between labellers, and Wilson intervals. The 30-item corpus is still not a benchmark.
 

@@ -121,6 +121,45 @@ without any error. None of that may turn into an accusation against a citation, 
 
 What is remembered is about the citation *and its link*: a paper first cited with a good DOI never makes a later invented DOI pass.
 
+### What regulates itself, and what does not
+
+The safeguards above react while Assay runs. Be clear about what that is:
+
+| | Does it happen by itself? |
+|---|---|
+| Leaving a failing or throttled source alone, then probing it | **Yes**, at run time (the breaker) |
+| Refusing to accuse when a source gives a changed or unreadable reply | **Yes** (shape check) |
+| Refusing to believe "not found" from a source that cannot find a known work | **Yes** (self-test with a canary) |
+| Serving an earlier answer, marked stale, when sources are down | **Yes** |
+| Noticing that a source has *permanently* changed (a renamed field, a retired canary work) | **No**, not by the running library. `assay health` asks every built-in source for a known work and reports `degraded` when one answers wrongly; the repository runs it weekly (`.github/workflows/sources-health.yml`) and opens an issue. A person then fixes the source. |
+| Adapting to a changed reply | **No.** Detecting a change and fixing for it are different things; Assay does the first. |
+| Finding and adopting new sources, or changing which services it calls | **No, deliberately.** See below. |
+
+So Assay is self-*regulating*, not self-*updating*. The safeguards stop a failing source from causing a wrong verdict; keeping the sources themselves current is maintenance, and the weekly check is what tells the maintainers when it is due.
+
+### Adding your own source
+
+You can add a source; Assay will not add one to itself. A new source is a new thing whose answers are believed, and a library that adopted sources automatically could be pointed at a poisoned one, and would break its promise about which hosts it contacts. So adding one is a decision a person takes, in code or in data.
+
+**With data**, for any service that answers JSON over https (the description is checked when you make it; a reply of the wrong shape is an outage; a canary is required):
+
+```ts
+import { createAssay, defaultSources, jsonSource } from '@extrafemi-ai/assay';
+
+const myIndex = jsonSource({
+  name: 'My Institution Repository',
+  url: 'https://repo.example.org/api/search?title={title}&author={surname}',
+  headers: { 'x-api-key': 'key:myrepo' },                       // 'key:NAME' is read from keys.NAME below
+  results: 'data.items',                                        // where the array of records is in the reply
+  fields: { title: 'name', authors: 'writers', year: 'meta.year', doi: 'ids.doi' },
+  authorName: 'fullName',                                       // authors are objects: where the name is inside each
+  canary: { title: 'A work this repository certainly holds', surname: 'Surname', authors: ['Surname'] },
+});
+const assay = createAssay({ sources: [...defaultSources, myIndex], keys: { myrepo: process.env.REPO_KEY! } });
+```
+
+**With code**, implement `SearchSource` (`{ name, canary, search(query, http, ctx) }`), or for numbers `ValueSource`, or `seededSource` for figures a person read off a primary publication. Add the source to your own scheduled check with `createAssay({ sources }).health()`: it will tell you when your source starts answering wrongly. To add a source to Assay itself, open a pull request with the source, a fixture recorded from the real service, a canary, and a note of whether it was verified live.
+
 ## Gate
 
 Is a claim sourced well enough to be stated? The gate checks claims against a **policy about their sources**: no network, no model. It judges how a

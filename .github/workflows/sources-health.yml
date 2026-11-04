@@ -1,0 +1,43 @@
+name: Sources health
+# Assay's safeguards react at run time (breakers, self-tests, shape checks), but nothing in the library can update itself when a service changes its reply
+# or retires the work used as a self-test. This job is the part that notices: each week it asks every built-in source for a work it must know, and opens
+# (or updates) an issue when one answers wrongly. A source that is merely down or throttled is reported but does not fail the job, because the runners'
+# shared addresses are throttled by some of these services; run it with --strict to treat that as a failure too.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Ask every source for a work it must know
+        id: health
+        run: |
+          set +e
+          node bin/assay.mjs health --mailto "${{ github.repository_owner }}@users.noreply.github.com" > health.txt 2>&1
+          code=$?
+          cat health.txt
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+      - name: Open or update the issue when a source answers wrongly
+        if: steps.health.outputs.code != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create sources-health --description "A built-in source answers wrongly" --color B60205 --force
+          body="A built-in source no longer answers correctly. This is not an outage: the source answered, but not with the work it should know, so its reply shape or its index has changed and a person needs to look.\n\n\`\`\`\n$(cat health.txt)\n\`\`\`\n\nRun: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          existing=$(gh issue list --label sources-health --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then gh issue comment "$existing" --body "$(printf "$body")"; else gh issue create --title "A built-in source answers wrongly" --label sources-health --body "$(printf "$body")"; fi
+          exit 1

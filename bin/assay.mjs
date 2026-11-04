@@ -5,6 +5,7 @@
 //   assay citations draft.md [--mailto you@example.org]
 //   assay retractions draft.md [--mailto you@example.org]
 //   assay links draft.md
+//   assay health                                   is each source answering, and answering correctly? (exit 1 if one is not; --strict also if one is down)
 //   assay grounding --draft draft.md --claims claims.txt                              (claims: one per line, numbered c1, c2 in order)
 //   add --json for the raw report, or --html report.html for a page a person can review
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -20,6 +21,7 @@ const HELP = `assay ${pkg.version}: check AI-written text against evidence
   assay citations FILE [--mailto ADDRESS]        looks the citations up online
   assay retractions FILE [--mailto ADDRESS]      looks the DOIs up online
   assay links FILE                               requests the links in the file
+  assay health [--mailto ADDRESS] [--strict]     asks every built-in source for a work it should know
 
   --json         print the raw report
   --html FILE    also write a page for a person to review
@@ -38,7 +40,7 @@ try {
     options: {
       source: { type: 'string' }, quote: { type: 'string', multiple: true }, 'quotes-file': { type: 'string' },
       draft: { type: 'string' }, materials: { type: 'string', multiple: true }, claims: { type: 'string' },
-      mailto: { type: 'string' }, json: { type: 'boolean' }, html: { type: 'string' }, help: { type: 'boolean' }, version: { type: 'boolean' },
+      mailto: { type: 'string' }, strict: { type: 'boolean' }, json: { type: 'boolean' }, html: { type: 'string' }, help: { type: 'boolean' }, version: { type: 'boolean' },
     },
   });
 } catch (e) { die(`${e.message}\n\n${HELP}`); }
@@ -48,6 +50,26 @@ const [command, file] = positionals;
 if (o.help || !command) { console.log(HELP); process.exit(command || o.help ? 0 : 2); }
 
 const lib = (m) => import(new URL(`../dist/${m}.js`, import.meta.url).href);
+if (command === 'health') {
+  // Self-regulation is only worth something if somebody notices when a source stops answering correctly. This asks each source for a work it must know.
+  // degraded = it answers, but not with the work it should have (a changed reply, a broken index): that needs a person. down = unreachable or throttled: usually temporary.
+  const { createAssay, defaultSources, pubmed } = await lib('index');
+  const { createValues, defaultValueSources, eurostat } = await lib('values');
+  const mailto = o.mailto ? { mailto: o.mailto } : {};
+  const groups = [['Citation sources', await createAssay({ ...mailto, sources: [...defaultSources, pubmed] }).health()], ['Value sources', await createValues({ ...mailto, sources: [...defaultValueSources, eurostat] }).health()]];
+  let bad = 0, down = 0;
+  for (const [title, list] of groups) {
+    console.log(title);
+    for (const h of list) {
+      if (h.state === 'degraded') bad++;
+      if (h.state === 'down' || h.state === 'unknown') down++;
+      console.log(`  ${h.state === 'healthy' ? '✓' : h.state === 'degraded' ? '✕' : '≈'} ${h.name}: ${h.state}${h.lastProblem ? ` (${h.lastProblem})` : ''}`);
+    }
+  }
+  if (bad) console.log('\nA degraded source answers, but not correctly: a person needs to look at it.');
+  else if (down) console.log('\nSources that are down are usually throttling or briefly unreachable; run again later.');
+  process.exit(bad || (o.strict && down) ? 1 : 0);
+}
 const { renderReview, sections } = await lib('review');
 let report, section, lines;
 

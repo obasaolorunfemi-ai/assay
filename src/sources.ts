@@ -164,6 +164,62 @@ export const semanticscholar: SearchSource = {
   },
 };
 
+/** Describes a citation source that speaks JSON over HTTPS, so one can be added with data instead of code. */
+export interface JsonSourceSpec {
+  name: string;
+  /** An https address with `{title}` and `{surname}` where the search words go (they are URL-encoded). The host must be fixed: no placeholder before the first "/" after it. */
+  url: string;
+  /** Extra headers, such as an API key. A value of the form `key:NAME` is replaced by `keys.NAME` from the options. */
+  headers?: Record<string, string>;
+  /** Dot path to the array of records in the reply, for example `data.items`. */
+  results: string;
+  /** Dot paths, inside each record, to the fields. `authors` points at an array of strings, or of objects (then give `authorName`). */
+  fields: { title: string; authors: string; year: string; doi?: string; venue?: string };
+  authorName?: string;
+  authorMode?: 'family' | 'display';
+  /** A work that certainly exists. Required: before this source's "not found" is believed, it is asked for this. */
+  canary: Canary;
+}
+const at = (o: unknown, path: string | undefined): unknown => (path ? path.split('.').reduce<unknown>((v, k) => (v && typeof v === 'object' ? (v as Record<string, unknown>)[k] : undefined), o) : undefined);
+
+/** Builds a `SearchSource` from a description. It checks the description when you make it (https, a fixed host, a canary) and the reply every time (a reply that is not an array of records is an outage, never "no results"). */
+export function jsonSource(spec: JsonSourceSpec): SearchSource {
+  if (!spec.name?.trim()) throw new TypeError('jsonSource needs a name');
+  if (!spec.canary?.title || !spec.canary?.surname) throw new TypeError(`jsonSource "${spec.name}" needs a canary: a work that certainly exists, so a broken source cannot be mistaken for "not found"`);
+  if (!spec.results || !spec.fields?.title || !spec.fields?.authors || !spec.fields?.year) throw new TypeError(`jsonSource "${spec.name}" needs results and the title, authors and year fields`);
+  let probe: URL;
+  try { probe = new URL(spec.url.replace(/\{(title|surname)\}/g, 'x')); } catch { throw new TypeError(`jsonSource "${spec.name}": the url is not an address`); }
+  if (probe.protocol !== 'https:') throw new TypeError(`jsonSource "${spec.name}": the url must be https`);
+  const hostPart = spec.url.slice(0, spec.url.indexOf('/', 'https://'.length) < 0 ? spec.url.length : spec.url.indexOf('/', 'https://'.length));
+  if (/[{}]/.test(hostPart)) throw new TypeError(`jsonSource "${spec.name}": the host must be fixed, not filled from the search words`);
+  return {
+    name: spec.name,
+    ...(spec.authorMode ? { authorMode: spec.authorMode } : {}),
+    canary: spec.canary,
+    async search(q, http, { keys }) {
+      const url = spec.url.replace(/\{title\}/g, encodeURIComponent(q.title)).replace(/\{surname\}/g, encodeURIComponent(q.surname));
+      const headers = Object.fromEntries(Object.entries(spec.headers ?? {}).map(([k, v]) => [k, v.startsWith('key:') ? (keys[v.slice(4)] ?? '') : v]));
+      const r = await http.json(url, Object.keys(headers).length ? { headers } : undefined);
+      const rows = at(r.body, spec.results);
+      if (!r.ok || !Array.isArray(rows)) return failed(r);
+      return {
+        ok: true,
+        candidates: rows.map((row) => {
+          const names = at(row, spec.fields.authors);
+          return {
+            title: plainTitle(at(row, spec.fields.title)),
+            authors: arr(names).map((a) => (typeof a === 'string' ? a : String(at(a, spec.authorName) ?? ''))).filter(Boolean),
+            year: Number(at(row, spec.fields.year)) || 0,
+            doi: String(at(row, spec.fields.doi) ?? '').replace(/^https?:\/\/doi\.org\//i, ''),
+            article: false,
+            venue: String(at(row, spec.fields.venue) ?? ''),
+          };
+        }),
+      };
+    },
+  };
+}
+
 export const defaultSources: SearchSource[] = [crossref, openalex, openlibrary];
 
 /** Do the candidate's authors include these surnames? Accents are folded. */
