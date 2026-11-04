@@ -28,6 +28,10 @@
       "types": "./dist/figures.d.ts",
       "import": "./dist/figures.js"
     },
+    "./names": {
+      "types": "./dist/names.d.ts",
+      "import": "./dist/names.js"
+    },
     "./gate": {
       "types": "./dist/gate.d.ts",
       "import": "./dist/gate.js"

@@ -2,6 +2,10 @@
 
 Versions before 1.0 may change between minor releases; each change that could break a caller is marked **breaking**.
 
+## 0.6.0 (unreleased)
+
+- **`/names`**: is every person, organisation, link and DOI in a draft one that your materials mention? The companion to figures: an invented "Greenfield Foundation" or "my earlier role at Acme Capital" has no digit, so the figures check passes it. A name is supported when every capitalised word in it is in the materials; links, DOIs and email addresses must appear in them too. Offline, bounded against quadratic patterns, and in the offline and no-quadratic tests like the other modules. Built for KeyStone, whose grant drafts, CV rewrites and cover letters needed it.
+
 ## 0.5.0
 
 **The legal check, run live.** `/legal` was run against the real CourtListener for the first time (three citations: found, caught under the wrong case, not verified) and the run is recorded in `docs/legal-live-verification.md`, repeatable with `npm run legal:live`. It exposed a defect, fixed here: a sentence-opening word such as "Also" was read as part of the case name, so a message said `not "Also Roe v. Wade"`.
