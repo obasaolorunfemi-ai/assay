@@ -217,7 +217,7 @@ const sitebar = (key) => `<div class="col sitebar-in"><a class="brand" href="/">
 const foot = `<footer class="site-foot"><div class="col"><div class="foot-grid">
 <div><h2>Use it</h2><ul><li><a href="/try/">Try it in your browser</a></li><li><a href="/start/">Get started</a></li><li><a href="/checks/">Reference</a></li></ul></div>
 <div><h2>Technical paper</h2><ul><li><a href="/paper/">Overview</a></li><li><a href="/self-healing/">Self-healing</a></li><li><a href="/limits/">Limits</a></li><li><a href="/security/">Security</a></li><li><a href="/changelog/">Changelog</a></li></ul></div>
-<div><h2>Project</h2><ul><li><a href="${GH}">GitHub</a></li><li><a href="${NPM}">npm</a></li><li><a href="https://lodestone.extrafemi.com">Lodestone</a>, its sibling</li><li><a href="https://whetstone.extrafemi.com">Whetstone</a>, where it runs</li></ul></div>
+<div><h2>Project</h2><ul><li><a href="${GH}">GitHub</a></li><li><a href="${NPM}">npm</a></li><li><a href="https://lodestone.extrafemi.com">Lodestone</a>, its sibling</li></ul></div>
 </div><p class="foot-note">Assay ${esc(pkg.version)}, free and open source (MIT). Lodestone keeps the AI call working; Assay checks what came back. The examples on this site are produced by running the library when the site is built.</p></div></footer>`;
 
 const sums = createHash('sha256');
