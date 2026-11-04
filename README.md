@@ -11,6 +11,10 @@ entry point, and you use only the ones your scenario needs.
 | **quotes** | the source text you supply: is this sentence really in it? | **no** | `@extrafemi-ai/assay/quotes` |
 | **figures** | the materials you supply: does every number come from them? | **no** | `@extrafemi-ai/assay/figures` |
 | **names** | the materials you supply: is every person, organisation, link and DOI in a draft one of theirs? | **no** | `@extrafemi-ai/assay/names` |
+| **claims** | the materials you supply: does the draft say something about the person (led, large, founded, PhD, a tool) that the materials never say? | **no** | `@extrafemi-ai/assay/claims` |
+| **references** | the materials you supply: does the draft lean on a source (an author and year, "according to…", "studies show") that the materials never mention? | **no** | `@extrafemi-ai/assay/references` |
+| **own** | the person's own CV, profile and letters, as a place a citation can be found (a citation source; no request) | **no** | `@extrafemi-ai/assay/own` |
+| **draft** | all of the above and figures, in one call | **no** | `@extrafemi-ai/assay/draft` |
 | **gate** | a policy about sources: is each claim sourced well enough to be stated? | **no** | `@extrafemi-ai/assay/gate` |
 | **grounding** | a list of approved claims: does every figure in a draft trace to one, and match it? | **no** | `@extrafemi-ai/assay/grounding` |
 | **links** | the live web: is the page there? (server-side only) | yes | `@extrafemi-ai/assay/links` |
@@ -327,6 +331,70 @@ findUnsupportedNames(draft, [cv, brief, call]);   // ["Greenfield Foundation", "
 - **`ignore`** adds words that are never names in your text; `links: false` leaves links out.
 
 What it does not do: it reads capitals, so an invented name written in lower case is not caught, and a real name the writer never put in the materials is flagged (that is the point: someone should check it). It does not know what a name is *about*, and it does not check the world, only your materials, so it is safe on private text and a test enforces that it never touches the network.
+
+## Claims
+
+"Led a large team" has no number, no name and no link, so figures and names pass it. Two words in it carry the claim: *led* and *large*. `checkClaims` reads a fixed list of the words that carry weight on a CV or in an application and checks each against the materials:
+
+```ts
+import { checkClaims } from '@extrafemi-ai/assay/claims';
+
+checkClaims('Led a large team of engineers.', 'Managed a team of 5 engineers.').summary.text;
+// "Claims: 2 · ✓ 1 in your materials · ✕ 1 not in your materials — the materials never use the word that makes the claim."
+// "led" is backed by "managed" (same kind of claim); "large" is not backed by anything.
+```
+
+- **Embellishments** must be in the materials themselves: *large, significant, global, award-winning, senior, world-class…*
+- **Ownership** is backed by any word of the same kind: *led* by *managed*, *founded* by *launched*, *won* by *shortlisted*, *published* by *authored*.
+- **Credentials and length**: *PhD, MBA, master's, bachelor's, certified, chartered*, and *decade*.
+- **Tools and skills in lower case**, where a name check has no capital to read: *python, kubernetes, tableau, machine learning…* (`tools: false` leaves them out).
+- Skips *led to*, *lead time* and *lead generation*; reads *a leading provider* as an embellishment and *leading a team* as a verb. `ignore` takes your own words.
+
+It is a list, not a judgement. It cannot say a sentence is untrue, only that the materials never used the word that makes the claim, and a claim made in words not on the list gets through.
+
+## References
+
+Models cite without being asked: "(Okafor & Bello, 2019)", "according to the World Bank report", "studies show". The bracketed form the citations check reads is not how a model writes unprompted, so those pass it. `checkReferences` reads the loose forms (author and year, numbered `[1]`, *according to…*, and unnamed appeals such as *studies show*, *experts agree*) and checks each against the materials: a source nobody supplied is one to check or cut. It does not look the source up; that is what the citations check does, for the bracketed format.
+
+```ts
+import { checkReferences } from '@extrafemi-ai/assay/references';
+
+checkReferences('As Adeyemi et al. (2021) show, research shows this works.', cv).verdicts.map((v) => v.source);
+// ["Adeyemi et al., 2021", "research shows"]
+```
+
+## Own materials
+
+A person's own publications sit in their own documents (a CV, a profile, an earlier letter). Sending them to a public index to be "verified" is slow, and it leaks what they wrote. `ownMaterials` is a citation source that reads works out of the text you give it and answers locally, with no request. Put it first and a citation the person's own materials list is confirmed there; the rest fall through to the public indexes as before.
+
+```ts
+import { createAssay, defaultSources } from '@extrafemi-ai/assay';
+import { ownMaterials } from '@extrafemi-ai/assay/own';
+
+const assay = createAssay({ sources: [ownMaterials([cv, profile, letters]), ...defaultSources] });
+```
+
+It reads the bracketed form the citations check reads, a reference line written the usual way (`Okafor, A. & Bello, B. (2019). Title of the work. Venue.`), and a quoted title with a year and the author's name before it. The same materials are what the figures, names, references and claims checks are given, so one list of "what this person has said" backs every check.
+
+## Draft
+
+`checkDraft` holds a draft to figures, names, references and claims in one call and returns what none of them could back:
+
+```ts
+import { checkDraft } from '@extrafemi-ai/assay/draft';
+
+const r = checkDraft(draft, [cv, brief, call]);
+r.findings;   // [{ kind: 'figure' | 'name' | 'link' | 'reference' | 'claim', text, message }, …]
+r.summary.text;
+```
+
+A citation that trips several checks ("(Okafor, 2019)" is a reference, a name and a year) is reported once, as the reference.
+
+**General advice.** Interview questions and career direction make claims about the *situation*, not the person, so checking every sentence would drown the page. `about: 'you'` reads only the sentences that speak to or about the reader ("Your last role at…", "As a candidate, you…"), on every check above:
+
+```ts
+checkDraft(advice, [cv, rubric], { about: 'you' });
+```
 
 ## Support
 

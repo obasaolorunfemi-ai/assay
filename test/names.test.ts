@@ -70,3 +70,20 @@ describe('the first word of a sentence', () => {
     expect(findUnsupportedNames('Built Oneremit Payments. Previously Head of Business at Oneremit Payments.', CV)).toEqual([]);
   });
 });
+
+describe('organisations written in lower case', () => {
+  it('flags the word before an organisation marker when the materials never use it', () => {
+    expect(findUnsupportedNames('We partnered with the greenfield foundation and acme corp.', CV)).toEqual(['greenfield foundation', 'acme corp']);
+  });
+  it('allows one the materials mention, and ordinary modifiers like "development bank"', () => {
+    expect(findUnsupportedNames('We worked with the tony elumelu foundation and a development bank.', CV)).toEqual([]);
+  });
+});
+
+describe('only what is said about the reader', () => {
+  it('skips general statements and checks the ones addressed to you', () => {
+    const advice = 'Hiring managers at Globex Corporation often ask about gaps. At your last role, Initech Systems, you ran payments.';
+    expect(findUnsupportedNames(advice, CV, { about: 'you' })).toEqual(['Initech Systems']);
+    expect(findUnsupportedNames(advice, CV)).toEqual(expect.arrayContaining(['Globex Corporation', 'Initech Systems']));
+  });
+});
