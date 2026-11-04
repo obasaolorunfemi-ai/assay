@@ -229,6 +229,45 @@ export function seededSource(entries: SeededEntry[], name = 'seeded figures'): V
   };
 }
 
+// ── Eurostat ───────────────────────────────────────────────────────────────
+
+/** Eurostat names countries by two-letter code. The claim's `geo` is ISO alpha-3, as everywhere else in Assay. */
+const EUROSTAT_GEO: Record<string, string> = { AUT: 'AT', BEL: 'BE', BGR: 'BG', HRV: 'HR', CYP: 'CY', CZE: 'CZ', DNK: 'DK', EST: 'EE', FIN: 'FI', FRA: 'FR', DEU: 'DE', GRC: 'EL', HUN: 'HU', IRL: 'IE', ITA: 'IT', LVA: 'LV', LTU: 'LT', LUX: 'LU', MLT: 'MT', NLD: 'NL', POL: 'PL', PRT: 'PT', ROU: 'RO', SVK: 'SK', SVN: 'SI', ESP: 'ES', SWE: 'SE', ISL: 'IS', NOR: 'NO', CHE: 'CH' };
+interface EurostatIndicator extends Indicator { dataset: string; filters: Record<string, string> }
+export const EUROSTAT_INDICATORS: EurostatIndicator[] = [
+  { id: 'une_rt_a', dataset: 'une_rt_a', filters: { age: 'Y15-74', sex: 'T', unit: 'PC_ACT' }, keywords: ['unemployment', 'jobless'], unit: 'percent' },
+  { id: 'prc_hicp_aind', dataset: 'prc_hicp_aind', filters: { coicop: 'CP00', unit: 'RCH_A_AVG' }, keywords: ['inflation', 'hicp', 'consumer price'], unit: 'percent' },
+  { id: 'nama_10_gdp', dataset: 'nama_10_gdp', filters: { na_item: 'B1GQ', unit: 'CP_MEUR' }, keywords: ['gdp', 'gross domestic product'], unit: 'EUR', magnitude: 1e6 },
+  { id: 'demo_pjan', dataset: 'demo_pjan', filters: { age: 'TOTAL', sex: 'T', unit: 'NR' }, keywords: ['population'], unit: null },
+];
+
+/** Eurostat (free, no key): European statistics for the EU, Iceland, Norway and Switzerland. Opt in with `sources: [...defaultValueSources, eurostat]`.
+ *  It reads the JSON-stat reply and refuses anything that is not the shape it expects: a changed reply is `unavailable`, never "no data". */
+export const eurostat: ValueSource = {
+  name: 'Eurostat',
+  canary: { claim: { value: 83_166_711, unit: null, period: 2020, geo: 'DEU', indicator: 'demo_pjan' }, expected: 83_166_711, tolerance: 0.001 },
+  async fetch(claim, { http }) {
+    const ind = claim.indicator ? EUROSTAT_INDICATORS.find((i) => i.id === claim.indicator) : (matchIndicator(EUROSTAT_INDICATORS, claim.subject) as EurostatIndicator | null);
+    if (!ind) return { ok: false, kind: 'no-match' };
+    const geo = EUROSTAT_GEO[claim.geo];
+    if (!geo) return { ok: false, kind: 'no-match' };
+    const y = Number(claim.period) || new Date().getFullYear();
+    const q = new URLSearchParams({ format: 'JSON', lang: 'EN', geo, sinceTimePeriod: String(y - 2), untilTimePeriod: String(y + 1), ...ind.filters });
+    const r = await http.json(`https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/${ind.dataset}?${q}`);
+    const body = r.body as any;
+    if (body?.error) return { ok: false, kind: 'no-data', problem: 'Eurostat has no figures for that selection' };
+    const time = body?.dimension?.time?.category?.index;
+    const size: unknown = body?.size;
+    const values = body?.value;
+    // JSON-stat: every other dimension was pinned to one value, so a value's key is its position in the time axis. Anything else is not the shape we read.
+    const okShape = r.ok && time && typeof time === 'object' && values && typeof values === 'object' && Array.isArray(size) && size.slice(0, -1).every((n) => n === 1) && size[size.length - 1] === Object.keys(time).length;
+    if (!okShape) return failure(r);
+    const points = Object.entries(time as Record<string, number>).map(([year, pos]) => ({ year: parseInt(year, 10), value: (values as Record<string, number>)[String(pos)] })).filter((p) => Number.isFinite(p.year) && typeof p.value === 'number' && Number.isFinite(p.value)).map((p) => ({ year: p.year, value: p.value * (ind.magnitude ?? 1) }));
+    if (!points.length) return { ok: false, kind: 'no-data', problem: 'no figures for that country and period' };
+    return { ok: true, series: { source: 'Eurostat', indicatorId: ind.id, indicatorName: body.label, unit: ind.unit, points, url: `https://ec.europa.eu/eurostat/databrowser/view/${ind.dataset}/default/table?lang=en` } };
+  },
+};
+
 export const defaultValueSources: ValueSource[] = [worldBank, imf];
 
 // ── The checker ─────────────────────────────────────────────────────────────────────────────────────────────────────────
