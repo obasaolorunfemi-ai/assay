@@ -1,0 +1,13 @@
+{
+  // The Assay site: static files only, served by Cloudflare Workers Assets (no Worker script).
+  // Build with `npm run site`, publish with `npx wrangler deploy`. See site/README.md.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "assay",
+  "compatibility_date": "2026-10-01",
+  "routes": [{ "pattern": "assay.extrafemi.com", "custom_domain": true }],
+  "assets": {
+    "directory": "./site/public",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

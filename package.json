@@ -63,7 +63,8 @@
     "test": "vitest run",
     "corpus": "npm run build && node scripts/corpus.mjs",
     "prepublishOnly": "npm run typecheck && npm test && npm run smoke",
-    "smoke": "npm run build && node scripts/smoke.mjs"
+    "smoke": "npm run build && node scripts/smoke.mjs",
+    "site": "npm run build && node site/build.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
