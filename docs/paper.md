@@ -212,7 +212,7 @@ Because input is adversarial, patterns that are quadratic on long runs of a sing
 
 ### 6.4 Privacy and key handling
 
-The offline checks make no requests. The citation check sends only author names, title, year and link of each citation, to a fixed list of hosts; the user's `mailto` goes to CrossRef and OpenAlex and an OpenAlex key to OpenAlex only. Nothing is logged and the default cache is in memory. The `legal` check, in contrast, transmits the text it is given to CourtListener, and says so; it is server-side only so that its token is never placed in a page. The `support` check makes no request itself but a judge usually does, and the documentation warns against sending private text to a model the user would not otherwise trust with it.
+The offline checks make no requests. The citation check sends only author names, title, year and link of each citation, to a fixed list of hosts; the user's `mailto` goes to CrossRef and OpenAlex and an OpenAlex key to OpenAlex only. Nothing is logged and the default cache is in memory. The library sends no usage data. An application may opt in, by calling it explicitly, to add counts (checked, ok, to check, failed, per check; never text) to a public self-reported counter; the counter keeps running totals and no addresses, rate-limits each sender per day, and makes no claim to be verified. The `legal` check, in contrast, transmits the text it is given to CourtListener, and says so; it is server-side only so that its token is never placed in a page. The `support` check makes no request itself but a judge usually does, and the documentation warns against sending private text to a model the user would not otherwise trust with it.
 
 ### 6.5 Supply chain
 

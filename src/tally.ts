@@ -13,6 +13,10 @@ export interface Tally {
   snapshot(): TallySnapshot;
   /** Add counts that were kept elsewhere (another process, an earlier day), for example loaded from your own store. */
   merge(other: TallySnapshot): void;
+  /** The counts added since the last drain, which are then cleared. For `shareTally`: it sends only what has not been sent. */
+  drain(): TallySnapshot;
+  /** Put a drained snapshot back, when it could not be sent. */
+  undrain(snapshot: TallySnapshot): void;
   reset(): void;
 }
 
@@ -22,6 +26,8 @@ const KEY = /^[a-z][a-z0-9-]{0,30}$/;
 export function createTally(): Tally {
   let total = zero();
   let by: Record<string, TallyCounts> = {};
+  let pendingTotal = zero();
+  let pendingBy: Record<string, TallyCounts> = {};
   const bump = (c: TallyCounts, b: Bucket | 'violation') => {
     if (b === 'skip') { c.skipped++; return; }
     c.checked++;
@@ -31,9 +37,10 @@ export function createTally(): Tally {
     add(name, report) {
       if (!KEY.test(name)) throw new TypeError('a tally name is a short lower-case word such as "citations"');
       const c = (by[name] ??= zero());
+      const pc = (pendingBy[name] ??= zero());
       // A grounding report lists only what went wrong; each violation is one thing caught.
       const list: Array<Bucket | 'violation'> = report.verdicts ? report.verdicts.map((v) => v.bucket) : (report.violations ?? []).map(() => 'violation' as const);
-      for (const b of list) { bump(c, b); bump(total, b); }
+      for (const b of list) { bump(c, b); bump(total, b); bump(pc, b); bump(pendingTotal, b); }
     },
     snapshot: () => ({ ...total, byCheck: Object.fromEntries(Object.entries(by).map(([k, v]) => [k, { ...v }])) }),
     merge(o) {
@@ -41,6 +48,16 @@ export function createTally(): Tally {
       add(total, o);
       for (const [k, v] of Object.entries(o.byCheck ?? {})) if (KEY.test(k)) add((by[k] ??= zero()), v);
     },
-    reset() { total = zero(); by = {}; },
+    drain() {
+      const out: TallySnapshot = { ...pendingTotal, byCheck: Object.fromEntries(Object.entries(pendingBy).map(([k, v]) => [k, { ...v }])) };
+      pendingTotal = zero(); pendingBy = {};
+      return out;
+    },
+    undrain(o) {
+      const add = (a: TallyCounts, b: TallyCounts) => { a.checked += b.checked | 0; a.ok += b.ok | 0; a.check += b.check | 0; a.failed += b.failed | 0; a.skipped += b.skipped | 0; };
+      add(pendingTotal, o);
+      for (const [k, v] of Object.entries(o.byCheck ?? {})) if (KEY.test(k)) add((pendingBy[k] ??= zero()), v);
+    },
+    reset() { total = zero(); by = {}; pendingTotal = zero(); pendingBy = {}; },
   };
 }

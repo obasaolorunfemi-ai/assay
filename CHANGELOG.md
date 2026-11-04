@@ -4,6 +4,7 @@ Versions before 1.0 may change between minor releases; each change that could br
 
 ## 0.4.0
 
+
 New checks and tools for the gaps the first release named.
 
 - **`/support`**: does the source text actually back the sentence? You supply the judge (a model call); Assay verifies the evidence the judge quotes with the quotes check, fails a claim whose figure is not in the source without asking the judge, and by default never counts a model's reading as `ok`.

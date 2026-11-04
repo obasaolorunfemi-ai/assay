@@ -5,6 +5,7 @@
    Like the other network checks it tells "not found" apart from "could not look": a throttled or changed API is `unavailable`, never an accusation.
    Coverage is not complete (CourtListener does not hold every court's decisions), so the wording is "not verified", not "invented". */
 import type { Bucket, Summary } from './types.js';
+import type { Tally } from './tally.js';
 import { summarizeBuckets } from './summary.js';
 import { makeHttp, type Http } from './http.js';
 
@@ -21,6 +22,8 @@ export interface LegalVerdict {
 }
 export interface LegalReport { verdicts: LegalVerdict[]; summary: Summary; ok: boolean }
 export interface LegalOptions {
+  /** Count what this checker finds in a `Tally` of your own (numbers only). Nothing is sent anywhere: see `shareTally` if you choose to share the counts. */
+  tally?: Tally;
   /** Your CourtListener API token (free, from courtlistener.com). Sent to courtlistener.com only. */
   token: string;
   fetch?: typeof fetch;
@@ -128,7 +131,9 @@ export function createLegal(opts: LegalOptions): Legal {
         }
       }
       const summary = summarizeBuckets(verdicts.map((v) => v.bucket), words);
-      return { verdicts, summary, ok: summary.failed === 0 };
+      const report = { verdicts, summary, ok: summary.failed === 0 };
+      opts.tally?.add('legal', report);
+      return report;
     },
   };
 }

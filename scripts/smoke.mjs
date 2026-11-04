@@ -12,6 +12,7 @@ import * as retractions from '@extrafemi-ai/assay/retractions';
 import * as review from '@extrafemi-ai/assay/review';
 import * as loop from '@extrafemi-ai/assay/loop';
 import * as tally from '@extrafemi-ai/assay/tally';
+import * as share from '@extrafemi-ai/assay/share';
 
 const need = (cond, msg) => { if (!cond) { console.error('SMOKE FAILED:', msg); process.exit(1); } };
 
@@ -54,6 +55,10 @@ need(page.includes('&lt;b&gt;') && !page.includes('<script'), 'review escapes an
 need(typeof loop.improve === 'function' && (await loop.improve({ text: 'ok', check: async () => ({ ok: true, failures: [] }), regenerate: async () => 'x' })).ok === true, 'loop');
 const tl = tally.createTally(); tl.add('quotes', quotes.checkQuotes([{ quote: 'an invented quote nobody wrote', source: 'something else entirely' }]));
 need(tl.snapshot().failed === 1 && !JSON.stringify(tl.snapshot()).includes('invented'), 'tally counts without keeping text');
+need(typeof share.shareTally === 'function' && typeof share.startSharing === 'function' && share.COUNTED_CHECKS.includes('quotes'), 'share exports');
+const sent = []; const t2 = tally.createTally(); t2.add('quotes', quotes.checkQuotes([{ quote: 'an invented quote nobody wrote', source: 'something else' }]));
+const shared = await share.shareTally(t2, { url: 'https://counter.example/api/count', fetch: async (u, i) => { sent.push(JSON.parse(i.body)); return { ok: true, status: 202 }; } });
+need(shared.sent && sent[0].counts.quotes.failed === 1 && !JSON.stringify(sent).includes('invented'), 'share sends counts only');
 const a = root.createAssay();
 need(['check', 'verify', 'recheck', 'repair', 'health', 'parse'].every((k) => typeof a[k] === 'function'), 'Assay methods');
 

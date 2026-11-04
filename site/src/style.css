@@ -369,3 +369,8 @@ blockquote.cite { margin: 1rem 0 1.4rem; padding: .9rem 1.2rem; border-left: 4px
 @media (min-width: 40rem) and (max-width: 75rem) {
   .js .sections { left: auto; right: 0; width: min(22rem, 100%); top: calc(100% + 6px); padding: .4rem 1.1rem .7rem; border: 1px solid var(--rule); border-radius: 18px; box-shadow: 0 16px 40px rgb(0 0 0 / .18); }
 }
+
+.tally.live .num { font-variant-numeric: tabular-nums; }
+.take-part { margin: 1rem 0 0; }
+.take-part summary { cursor: pointer; font-weight: 600; color: var(--ac); min-height: 2.75rem; display: flex; align-items: center; }
+.take-part pre { margin: .4rem 0 .8rem; }

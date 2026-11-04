@@ -4,6 +4,7 @@
    "No notice recorded" is not proof that none exists: notices reach Crossref from publishers and from Retraction Watch, and some are late.
    A DOI that Crossref does not hold (a DataCite DOI, a preprint server) is skipped, not cleared. An outage is `unavailable`, never "clear". */
 import type { Bucket, Summary } from './types.js';
+import type { Tally } from './tally.js';
 import { summarizeBuckets } from './summary.js';
 import { makeHttp, type Http } from './http.js';
 
@@ -18,7 +19,10 @@ export interface RetractionVerdict {
   retryable?: boolean;
 }
 export interface RetractionReport { verdicts: RetractionVerdict[]; summary: Summary; ok: boolean }
-export interface RetractionOptions { mailto?: string; fetch?: typeof fetch; timeoutMs?: number; requestsPerSecond?: number; maxDois?: number }
+export interface RetractionOptions {
+  /** Count what this checker finds in a `Tally` of your own (numbers only). Nothing is sent anywhere: see `shareTally` if you choose to share the counts. */
+  tally?: Tally;
+  mailto?: string; fetch?: typeof fetch; timeoutMs?: number; requestsPerSecond?: number; maxDois?: number }
 export interface Retractions {
   /** Pass a text (every DOI in it is checked) or a list of DOIs. */
   check(input: string | string[]): Promise<RetractionReport>;
@@ -74,7 +78,9 @@ export function createRetractions(opts: RetractionOptions = {}): Retractions {
       const verdicts: RetractionVerdict[] = [];
       for (const d of [...new Set(dois)]) verdicts.push(await one(d));
       const summary = summarizeBuckets(verdicts.map((v) => v.bucket), words);
-      return { verdicts, summary, ok: summary.failed === 0 };
+      const report = { verdicts, summary, ok: summary.failed === 0 };
+      opts.tally?.add('retractions', report);
+      return report;
     },
   };
 }

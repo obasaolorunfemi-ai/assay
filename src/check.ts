@@ -4,10 +4,13 @@ import { parseCitations } from './parse.js';
 import { defaultSources, type SearchSource } from './sources.js';
 import { bucketOf, messageFor, summarize } from './verdict.js';
 import { failedSelfTest, verifyCitation, type Ctx } from './verify.js';
+import type { Tally } from './tally.js';
 import { createHealthBook, type BreakerOptions, type SourceHealth } from './health.js';
 import { checkLink, linkKind } from './links.js';
 
 export interface AssayOptions {
+  /** Count what this checker finds in a `Tally` of your own (numbers only). Nothing is sent anywhere: see `shareTally` if you choose to share the counts. */
+  tally?: Tally;
   /**
    * Your address, sent to CrossRef and OpenAlex so they can reach you instead of blocking you (their "polite pool", about twice the
    * rate). Strongly recommended for anything that runs often. It is sent to those two services and nowhere else.
@@ -140,5 +143,6 @@ export function createAssay(opts: AssayOptions = {}): Assay {
     return ctx.health.snapshot(ctx.sources.map((s) => s.name));
   };
 
-  return { check: (text) => verify(parseCitations(text)), verify, parse: parseCitations, recheck, repair, health };
+  const counted = (r: Report): Report => { opts.tally?.add('citations', r); return r; };
+  return { check: async (text) => counted(await verify(parseCitations(text))), verify: async (c) => counted(await verify(c)), parse: parseCitations, recheck, repair, health };
 }

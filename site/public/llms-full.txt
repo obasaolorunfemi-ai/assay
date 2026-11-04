@@ -367,6 +367,22 @@ tally.add('quotes', checkQuotes(items));
 tally.snapshot();   // { checked: 14, ok: 11, check: 1, failed: 2, skipped: 0, byCheck: { citations: {…}, quotes: {…} } }
 ```
 
+### Sharing your counts with the public counter (optional)
+
+The home page of [assay.extrafemi.com](https://assay.extrafemi.com) shows a live counter. It is fed only by apps whose authors choose to take part, and nothing is sent unless your code calls `shareTally` or `startSharing`:
+
+```ts
+import { createAssay } from '@extrafemi-ai/assay';
+import { createTally } from '@extrafemi-ai/assay/tally';
+import { startSharing } from '@extrafemi-ai/assay/share';
+
+const tally = createTally();
+const assay = createAssay({ tally });   // also createValues, createRetractions, createLegal, createSupport, createLinkChecker
+startSharing(tally);                    // every ten minutes; call `.flush()` before your process exits
+```
+
+What goes out is `{ "v": 1, "counts": { "citations": { "checked": 12, "ok": 10, "check": 1, "failed": 1 } } }`: for each check, how many items were checked and how many came back ok, to check or failed. No text, citations, quotes, names or identifiers. The counter (`worker/` in this repository) keeps running totals only; it does not store addresses (it hashes the sender with the day's date, in memory, only to limit what one sender can add in a day), and it is **self-reported and not verified**. A failed report is never fatal and is added to the next one. The plain functions (`checkQuotes`, `checkFigures`, `checkGrounding`, the gate) have no instance to hook, so call `tally.add('quotes', report)` after them.
+
 `merge()` adds counts you kept elsewhere (another process, an earlier day), so you can store the snapshot in your own database and show it on your own page.
 
 ## Review, the loop, the command line
@@ -435,7 +451,7 @@ of this repository. Say what you found, how to reproduce it, and which version. 
 - **Small.** Read it before you depend on it.
 - **Pinned build.** Third-party GitHub Actions are pinned to a commit; Dependabot proposes updates.
 - **Your keys stay yours.** An OpenAlex key is sent to OpenAlex only. Your `mailto` is sent to CrossRef and OpenAlex only.
-- **No logging, no telemetry.** Citations, the text around them and results are never stored or sent anywhere but the sources named in the README. The default cache is in memory.
+- **No logging, no telemetry.** Citations, the text around them and results are never stored or sent anywhere but the sources named in the README. The default cache is in memory. The one exception is opt-in: `shareTally` / `startSharing` (`@extrafemi-ai/assay/share`) send a handful of counts to the public counter, but only if your code calls them. They send numbers per check, never text, and nothing in Assay calls them for you.
 
 ## How it is published
 

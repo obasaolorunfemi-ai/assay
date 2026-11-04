@@ -5,6 +5,7 @@
    never counts), and a model's opinion can flag a mismatch but can never produce "verified". */
 import type { Bucket, KeyValueStore, Summary } from './types.js';
 import { makeHttp, type Http } from './http.js';
+import type { Tally } from './tally.js';
 import { createHealthBook, type BreakerOptions, type SourceHealth } from './health.js';
 import { extractFigures, extractYears } from './numbers.js';
 import { summarizeBuckets } from './summary.js';
@@ -276,6 +277,8 @@ export const defaultValueSources: ValueSource[] = [worldBank, imf];
 export type CrossCheck = (claim: ValueClaim, context: { findings?: string }) => Promise<{ mismatch: boolean | null; note?: string; supersededBy?: string | null }>;
 
 export interface ValuesOptions {
+  /** Count what this checker finds in a `Tally` of your own (numbers only). Nothing is sent anywhere: see `shareTally` if you choose to share the counts. */
+  tally?: Tally;
   mailto?: string;
   sources?: ValueSource[];
   tolerance?: Tolerance;
@@ -458,5 +461,9 @@ export function createValues(opts: ValuesOptions = {}): Values {
     return health.snapshot(sources.map((s) => s.name));
   }
 
-  return { check, checkText, health: healthReport };
+  return {
+    check: async (claim, o) => { const v = await check(claim, o); opts.tally?.add('values', { verdicts: [v] }); return v; },
+    checkText: async (text, about, o) => { const r = await checkText(text, about, o); opts.tally?.add('values', r); return r; },
+    health: healthReport,
+  };
 }

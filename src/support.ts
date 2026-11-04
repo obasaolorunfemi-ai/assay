@@ -5,6 +5,7 @@
    with the quotes check, deterministic), and by default even then the best answer is "found a quote, a person should confirm it says the same".
    Numbers are checked without any model: a claim whose figure is not in the source fails before the judge is asked. */
 import type { Bucket, Summary } from './types.js';
+import type { Tally } from './tally.js';
 import { summarizeBuckets } from './summary.js';
 import { checkQuote } from './quotes.js';
 import { checkFigures } from './figures.js';
@@ -39,6 +40,8 @@ export interface SupportVerdict {
 export interface SupportReport { verdicts: SupportVerdict[]; summary: Summary; ok: boolean }
 
 export interface SupportOptions {
+  /** Count what this checker finds in a `Tally` of your own (numbers only). Nothing is sent anywhere: see `shareTally` if you choose to share the counts. */
+  tally?: Tally;
   judge: Judge;
   /** Count "evidence found" as `ok`. Off by default: a model decided the evidence means the same as the claim, and a model cannot verify. */
   trustJudge?: boolean;
@@ -107,14 +110,16 @@ export function createSupport(opts: SupportOptions): Support {
   }
 
   return {
-    checkOne: (claim, source) => checkOne(claim, source),
+    checkOne: async (claim, source) => { const v = await checkOne(claim, source); opts.tally?.add('support', { verdicts: [v] }); return v; },
     async check(items) {
       const verdicts: SupportVerdict[] = new Array(items.length);
       let next = 0;
       const worker = async () => { for (;;) { const i = next++; if (i >= items.length) return; const it = items[i]!; verdicts[i] = await checkOne(it.claim, it.source, it.id); } };
       await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
       const summary = summarizeBuckets(verdicts.map((v) => v.bucket), words);
-      return { verdicts, summary, ok: summary.failed === 0 };
+      const report = { verdicts, summary, ok: summary.failed === 0 };
+      opts.tally?.add('support', report);
+      return report;
     },
   };
 }

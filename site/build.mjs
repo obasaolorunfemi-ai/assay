@@ -233,7 +233,7 @@ const foot = `<footer class="site-foot"><div class="col"><div class="foot-grid">
 </div><p class="foot-note">Assay ${esc(pkg.version)}, free and open source (MIT). A project of <a href="https://labs.extrafemi.com">Extrafemi Labs</a>. Lodestone keeps the AI call working; Assay checks what came back. The examples on this site are produced by running the library when the site is built. Results can be wrong: <a href="/disclaimer/">read the disclaimer</a>.</p></div></footer>`;
 
 const sums = createHash('sha256');
-for (const f of ['style.css', 'theme.js', 'menu.js', 'demo.js', 'anim.js']) sums.update(readFileSync(join(src, f)));
+for (const f of ['style.css', 'theme.js', 'menu.js', 'demo.js', 'anim.js', 'counter.js']) sums.update(readFileSync(join(src, f)));
 sums.update(animCss);
 const V8 = sums.digest('hex').slice(0, 8);
 
@@ -326,17 +326,36 @@ ${story(ex('Values'), 'The right source, the wrong year', `A draft says Nigerian
 </div>
 <p class="actions"><a class="pill" href="/cases/">These are small. Read the cases that cost real money</a></p>
 </div></section>
+<section class="band" id="live-counter"><div class="col">
+<h2>What it has caught, live</h2>
+<p class="sub">Apps that choose to take part add their counts here, and this page updates as they do. Only numbers are sent, never text. It is self-reported, rate-limited and not verified, and nothing is sent unless an app turns it on.</p>
+<ul class="tally live" id="live" aria-live="polite">
+<li><span class="num" data-k="checked">…</span><p>things checked</p></li>
+<li><span class="num" data-k="failed">…</span><p>caught: invented, missing or contradicted</p></li>
+<li><span class="num" data-k="check">…</span><p>sent for a person to look at</p></li>
+<li><span class="num" data-k="reports">…</span><p>reports received</p></li>
+</ul>
+<p class="small" id="live-note">Loading the counter.</p>
+<details class="take-part"><summary>Take part: three lines in your app</summary>
+<pre><code>${esc(`import { createAssay } from '@extrafemi-ai/assay';
+import { createTally } from '@extrafemi-ai/assay/tally';
+import { startSharing } from '@extrafemi-ai/assay/share';
+
+const tally = createTally();
+const assay = createAssay({ tally });   // counts what it finds, in memory
+startSharing(tally);                    // sends the numbers, never text, every ten minutes`)}</code></pre>
+<p class="small">What is sent: for each check, how many items were checked and how many came back ok, to check or failed. No text, names or identifiers. The counter keeps no address: it hashes the sender with the day's date, in memory, only to limit what one sender can add in a day, and forgets it. Its code is in the repository, in <code>worker/</code>.</p></details>
+</div></section>
 <section class="band"><div class="col">
-<h2>What it has caught, so far</h2>
-<p class="sub">These are counted from the project's own work, and each one links to where it comes from. They are not usage statistics: Assay has no telemetry, so it cannot see what it catches in other people's apps. That is a promise, not a gap.</p>
+<h2>Caught while building Assay</h2>
+<p class="sub">Counted from the project's own work, each linked to where it comes from. These are not usage statistics.</p>
 <ul class="tally">
 <li><span class="num">15 of 30</span><p>citations written by free models that turned out invented or wrongly linked, in a hand-labelled sample from 3 November 2026.</p><a href="/paper/#8-evaluation">The sample, and why it is not a benchmark</a></li>
 <li><span class="num">34 of 36</span><p>references in the project's two technical papers were verified by Assay itself; two could not be checked because a source was throttling, and none failed or was retracted.</p><a href="/paper/#7-verifying-the-library">How that was run</a></li>
 <li><span class="num">1</span><p>real bug in Assay found by Assay: a correctly cited paper looked wrong because its title carried markup. Fixed in 0.4.0.</p><a href="/changelog/">In the changelog</a></li>
 <li><span class="num">10</span><p>places where Assay's own text parsing could be made to run for minutes on hostile input, found by measuring and fixed before release.</p><a href="/security/">In the security notes</a></li>
 </ul>
-<p class="sub">Want a counter for your own app? <code>createTally()</code> keeps only numbers, never text, and you decide where they go. Try the checks yourself: the demo counts what it catches for you, on your device only.</p>
-<p class="actions"><a class="pill" href="/try/">Try the checks</a><a class="pill" href="${GH}#tally">About the tally helper</a></p>
+<p class="actions"><a class="pill" href="/try/">Try the checks: the demo counts what it catches for you, on your device only</a></p>
 </div></section>
 <section class="band"><div class="col">
 <h2>Why a red mark is worth believing</h2>
@@ -671,7 +690,7 @@ The [cases page](/cases/) describes publicly reported court decisions, tribunal 
 
 ## Your text and your data
 
-The checks that compare text with material you supply run on your own device or server and make no requests. The citation check sends the author names, title, year and link of each citation, and the retraction, value and link checks send DOIs, search terms or addresses, to the services they query, as the documentation states. The legal check sends the text you give it to CourtListener, and a model you supply to the support check will receive whatever you send it. Do not send confidential or personal text anywhere you would not otherwise send it. The offline demonstration on this site sends nothing: its security policy does not allow the page to make a request.
+The checks that compare text with material you supply run on your own device or server and make no requests. The citation check sends the author names, title, year and link of each citation, and the retraction, value and link checks send DOIs, search terms or addresses, to the services they query, as the documentation states. The legal check sends the text you give it to CourtListener, and a model you supply to the support check will receive whatever you send it. Do not send confidential or personal text anywhere you would not otherwise send it. The offline demonstration on this site sends nothing: its security policy does not allow the page to make a request. Assay itself sends no usage data. An app that chooses to can share a handful of counts (how many items were checked and how many were ok, to check or failed, per check) with the public counter shown on the home page: no text, no names, no identifiers, and the counter keeps no address. That counter is self-reported and not verified.
 
 ## Changes and corrections
 
@@ -691,7 +710,7 @@ const put = (path, html) => {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, html);
 };
-put('', page({ path: '/', key: 'home', title: 'Assay: catch what AI made up', desc: 'Finds invented citations, quotes that are not in the source, and numbers nobody gave the AI. Free, open source, and the checks on your own text run in your browser.', body: home, ld: homeLd, scripts: `\n<script src="/anim.js?v=${V8}" defer></script>` }));
+put('', page({ path: '/', key: 'home', title: 'Assay: catch what AI made up', desc: 'Finds invented citations, quotes that are not in the source, and numbers nobody gave the AI. Free, open source, and the checks on your own text run in your browser.', body: home, ld: homeLd, scripts: `\n<script src="/anim.js?v=${V8}" defer></script>\n<script src="/counter.js?v=${V8}" defer></script>` }));
 put('start', page({ path: '/start/', key: 'start', title: 'Get started · Assay', desc: 'Install Assay and run the check that fits: citations, quotes, figures, the source gate or grounding.', body: startPage }));
 put('paper', page({ path: '/paper/', key: 'paper', title: 'Technical paper · Assay', desc: 'How Assay works, how it fails and where it stops: design, self-healing, limits, security and changelog.', body: paperPage }));
 put('evidence', page({ path: '/evidence/', key: 'evidence', title: 'What counts as evidence · Assay', desc: 'What Assay counts as evidence, why, and which sources it uses, check by check, with the self-tests and limits of each source.', body: evidencePage }));
@@ -705,7 +724,7 @@ put('security', page({ path: '/security/', key: 'security', title: 'Security · 
 put('changelog', page({ path: '/changelog/', key: 'changelog', title: 'Changelog · Assay', desc: 'What changed in each Assay release.', body: changelogPage }));
 put('404', page({ path: '404', key: '', title: 'Not found · Assay', desc: 'Page not found.', body: notFound, noindex: true }));
 
-for (const f of ['theme.js', 'menu.js', 'demo.js', 'anim.js', 'favicon.svg', '_headers', 'robots.txt']) copyFileSync(join(src, f), join(out, f));
+for (const f of ['theme.js', 'menu.js', 'demo.js', 'anim.js', 'counter.js', 'favicon.svg', '_headers', 'robots.txt']) copyFileSync(join(src, f), join(out, f));
 writeFileSync(join(out, 'style.css'), readFileSync(join(src, 'style.css'), 'utf8') + '\n' + animCss);
 cpSync(join(src, 'fonts'), join(out, 'fonts'), { recursive: true });
 

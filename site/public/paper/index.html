@@ -16,9 +16,9 @@
 <link rel="preload" href="/fonts/newsreader-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/inter-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<link rel="stylesheet" href="/style.css?v=a943624e">
-<script src="/theme.js?v=a943624e"></script>
-<script src="/menu.js?v=a943624e" defer></script>
+<link rel="stylesheet" href="/style.css?v=f65cd925">
+<script src="/theme.js?v=f65cd925"></script>
+<script src="/menu.js?v=f65cd925" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -107,7 +107,7 @@
 <h3 id="6-3-algorithmic-complexity-attacks-on-parsing">6.3 Algorithmic-complexity attacks on parsing</h3>
 <p>Because input is adversarial, patterns that are quadratic on long runs of a single character are a denial-of-service risk (Crosby &amp; Wallach, 2003; Davis et al., 2018). Static analysis (CodeQL) flagged polynomial regular expressions in the code, and measurement confirmed ten places that were quadratic, including in the citation parser and the author splitter. They were rewritten with bounded repetitions and linear trimming helpers, and a permanent regression test now runs every public function that handles text (19 in 0.3.0, 24 in 0.4.0) against 24 families of awkward input at 30,000 characters with a 300 ms budget. The test states its own rule: if it becomes slow, a pattern has become quadratic and must be bounded; the budget is not to be raised.</p>
 <h3 id="6-4-privacy-and-key-handling">6.4 Privacy and key handling</h3>
-<p>The offline checks make no requests. The citation check sends only author names, title, year and link of each citation, to a fixed list of hosts; the user's <code>mailto</code> goes to CrossRef and OpenAlex and an OpenAlex key to OpenAlex only. Nothing is logged and the default cache is in memory. The <code>legal</code> check, in contrast, transmits the text it is given to CourtListener, and says so; it is server-side only so that its token is never placed in a page. The <code>support</code> check makes no request itself but a judge usually does, and the documentation warns against sending private text to a model the user would not otherwise trust with it.</p>
+<p>The offline checks make no requests. The citation check sends only author names, title, year and link of each citation, to a fixed list of hosts; the user's <code>mailto</code> goes to CrossRef and OpenAlex and an OpenAlex key to OpenAlex only. Nothing is logged and the default cache is in memory. The library sends no usage data. An application may opt in, by calling it explicitly, to add counts (checked, ok, to check, failed, per check; never text) to a public self-reported counter; the counter keeps running totals and no addresses, rate-limits each sender per day, and makes no claim to be verified. The <code>legal</code> check, in contrast, transmits the text it is given to CourtListener, and says so; it is server-side only so that its token is never placed in a page. The <code>support</code> check makes no request itself but a judge usually does, and the documentation warns against sending private text to a model the user would not otherwise trust with it.</p>
 <h3 id="6-5-supply-chain">6.5 Supply chain</h3>
 <p>Assay has no runtime dependencies, so installing it brings in nothing that could be compromised underneath it, the property whose absence drives much of the npm risk described by Zimmermann et al. (2019) and Ohm et al. (2020). Releases are built by a pinned GitHub Actions workflow and published through npm trusted publishing from a protected environment that requires a named human reviewer, so no long-lived publishing token exists to steal; each release carries build provenance (cf. Newman et al., 2022). Repository rules prevent release tags from being moved or deleted and <code>main</code> from being rewritten, so a published version cannot be quietly re-pointed at different code. We note a cost of this design that arose in practice: a mistaken tag cannot be deleted without first disabling the rule, which delayed one release.</p>
 <h2 id="7-verifying-the-library">7 Verifying the library</h2>
@@ -144,6 +144,6 @@
 <div><h2>Use it</h2><ul><li><a href="/cases/">When AI made things up</a></li><li><a href="/try/">Try it in your browser</a></li><li><a href="/start/">Get started</a></li><li><a href="/checks/">Reference</a></li></ul></div>
 <div><h2>Trust</h2><ul><li><a href="/evidence/">What counts as evidence</a></li><li><a href="/paper/">Technical paper</a></li><li><a href="/limits/">Limits</a></li><li><a href="/self-healing/">Self-healing</a></li><li><a href="/security/">Security</a></li><li><a href="/disclaimer/">Disclaimer</a></li><li><a href="/changelog/">Changelog</a></li></ul></div>
 <div><h2>Project</h2><ul><li><a href="https://github.com/obasaolorunfemi-ai/assay">GitHub</a></li><li><a href="https://www.npmjs.com/package/@extrafemi-ai/assay">npm</a></li><li><a href="https://labs.extrafemi.com">Extrafemi Labs</a></li><li><a href="https://lodestone.extrafemi.com">Lodestone</a>, its sibling</li></ul></div>
-</div><p class="foot-note">Assay 0.4.0, free and open source (MIT). A project of <a href="https://labs.extrafemi.com">Extrafemi Labs</a>. Lodestone keeps the AI call working; Assay checks what came back. The examples on this site are produced by running the library when the site is built. Results can be wrong: <a href="/disclaimer/">read the disclaimer</a>.</p></div></footer>
+</div><p class="foot-note">Assay 0.5.0, free and open source (MIT). A project of <a href="https://labs.extrafemi.com">Extrafemi Labs</a>. Lodestone keeps the AI call working; Assay checks what came back. The examples on this site are produced by running the library when the site is built. Results can be wrong: <a href="/disclaimer/">read the disclaimer</a>.</p></div></footer>
 </body>
 </html>

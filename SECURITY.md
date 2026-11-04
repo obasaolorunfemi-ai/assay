@@ -11,7 +11,7 @@ of this repository. Say what you found, how to reproduce it, and which version. 
 - **Small.** Read it before you depend on it.
 - **Pinned build.** Third-party GitHub Actions are pinned to a commit; Dependabot proposes updates.
 - **Your keys stay yours.** An OpenAlex key is sent to OpenAlex only. Your `mailto` is sent to CrossRef and OpenAlex only.
-- **No logging, no telemetry.** Citations, the text around them and results are never stored or sent anywhere but the sources named in the README. The default cache is in memory.
+- **No logging, no telemetry.** Citations, the text around them and results are never stored or sent anywhere but the sources named in the README. The default cache is in memory. The one exception is opt-in: `shareTally` / `startSharing` (`@extrafemi-ai/assay/share`) send a handful of counts to the public counter, but only if your code calls them. They send numbers per check, never text, and nothing in Assay calls them for you.
 
 ## How it is published
 
