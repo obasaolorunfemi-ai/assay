@@ -402,16 +402,12 @@ Every check answers the same way: \`ok\`, a one-line \`summary.text\`, and a ver
 - **Every option, every status, every message** is in the [reference](/checks/).`;
 const startPage = doc('Get started', 'Install it, pick the check that fits, read the verdict.', md(startMd, { minLevel: 2 }));
 
-const paperPage = doc('Technical paper', 'For readers who want to know how Assay works, how it fails, and where it stops. The front of this site is for using it; this part is for judging it.', `${md(`## The design in short
-
-- **Separate checks, because the questions differ.** A citation is checked against public records, a quote against your source text, a number against your materials. Each has its own entry point, and nothing runs them all together.
-- **The ones that use your material never go online.** Quotes, figures, the gate and grounding make no requests, and a test fails the build if one of them starts to. Only citations, values and links reach out.
-- **One shape of answer.** A bucket for each item (ok, check, failed, skip), a sentence in plain words, a one-line summary.
-- **“Could not look” is never “not found”.** A broken or throttled source produces *unavailable*, and a source is tested against a work that certainly exists before it is believed.
-- **The link checker is built for hostile input.** It fetches addresses that came out of AI text, so the address it validates is the address it connects to, every redirect is re-checked, and only public addresses are allowed.
-
-## The parts`)}
-<ul class="parts">${[['/self-healing/', 'Self-healing', 'How the citation and value checks keep working when the free sources they rely on throttle, change or go down.'], ['/limits/', 'What it cannot do', 'Where it falls short, in plain terms, and what it does with your data.'], ['/security/', 'Security', 'How the package is published and protected, and what the link checker guarantees.'], ['/changelog/', 'Changelog', 'What changed, release by release.'], ['/checks/', 'Reference', 'Every check, option, status and message.']].map(([h, t, d]) => `<li><a href="${h}">${t}</a><span>${d}</span></li>`).join('')}</ul>`);
+const paperSrc = readFileSync(join(root, 'docs/paper.md'), 'utf8').replace(/\r/g, '');
+const paperTitle = paperSrc.match(/^# (.*)$/m)[1];
+const paperStatus = paperSrc.match(/^\*(.*)\*$/m)[1];
+const paperBody = paperSrc.replace(/^# .*$/m, '').replace(/^\*.*\*$/m, '').split('\n## Appendices')[0];
+const appendices = [['/checks/', 'Reference', 'Every check, option, status and message.'], ['/self-healing/', 'Self-healing', 'The full description of how the network checks keep working when their sources do not.'], ['/limits/', 'What it cannot do', 'The limits, in the README’s own words, and what happens to your data.'], ['/security/', 'Security policy', 'Reporting, publishing, repository protections and the link checker’s guarantees.'], ['/changelog/', 'Changelog', 'What changed, release by release.']];
+const paperPage = doc(esc(paperTitle), esc(paperStatus), `${md(paperBody)}<h2 id="appendices">Appendices</h2><ul class="parts">${appendices.map(([h, t, d]) => `<li><a href="${h}">${t}</a><span>${d}</span></li>`).join('')}</ul>`);
 
 const tool = (id, title, intro, fields, run) => `<section class="tool" id="${id}"><h2>${title}</h2><p class="sub tight">${intro}</p>${fields}<div class="results" id="${id}-out" aria-live="polite"></div></section>`;
 const field = (id, label, value, rows = 4) => `<div><label for="${id}">${label}</label><textarea id="${id}" rows="${rows}" spellcheck="false">${esc(value)}</textarea></div>`;
