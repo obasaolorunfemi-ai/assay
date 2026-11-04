@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Http, HttpInit, HttpResult } from '../src/http.js';
-import { pubmed, semanticscholar } from '../src/sources.js';
+import { crossref, plainTitle, pubmed, semanticscholar } from '../src/sources.js';
 import { createValues, eurostat } from '../src/values.js';
 
 const ok = (body: unknown): HttpResult => ({ ok: true, status: 200, body });
@@ -88,5 +88,17 @@ describe('eurostat source', () => {
       const r = await values(() => ok(body)).check({ value: 1, unit: 'percent', period: 2023, geo: 'DEU', subject: 'unemployment' });
       expect(r.state).toBe('unavailable');
     }
+  });
+});
+
+describe('titles with markup', () => {
+  it('plainTitle drops tags and line breaks', () => {
+    expect(plainTitle('Hallucination\u2010Free? Assessing the Reliability of Leading\n   <scp>AI</scp>\n   Legal Research Tools')).toBe('Hallucination\u2010Free? Assessing the Reliability of Leading AI Legal Research Tools');
+    expect(plainTitle(undefined)).toBe('');
+  });
+  it('CrossRef titles are compared as words: the 2025 legal-research paper comes back with its markup removed', async () => {
+    const h = http(() => ok({ message: { items: [{ title: ['Hallucination\u2010Free? Assessing the Reliability of Leading\n <scp>AI</scp>\n Legal Research Tools'], author: [{ family: 'Magesh' }], issued: { 'date-parts': [[2025]] }, DOI: '10.1111/jels.12413', type: 'journal-article', 'container-title': ['Journal of Empirical Legal Studies'] }] } }));
+    const r = await crossref.search({ title: 'x', surname: 'Magesh' }, h, ctx);
+    expect(r.candidates[0]!.title).toBe('Hallucination\u2010Free? Assessing the Reliability of Leading AI Legal Research Tools');
   });
 });

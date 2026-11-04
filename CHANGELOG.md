@@ -12,6 +12,7 @@ New checks and tools for the gaps the first release named.
 - **`/review`**: any report as one self-contained, escaped HTML page for a person to read, worst first. **`/loop`** (`improve`): ask the model again with what failed, bounded.
 - **`assay` command line** and a **GitHub Action**.
 - **More sources**: `pubmed` (verified live) and `semanticscholar` (not verified live) for citations; `eurostat` for values (verified live). All opt in.
+- **Fixed: a title with markup no longer reads as a different title.** CrossRef sends some titles with markup and line breaks (`<scp>AI</scp>`), which made a real, correctly cited paper come back as "the title differs". Found by running Assay on the reference lists of its own technical papers. Titles from CrossRef and OpenAlex are now compared as words.
 - `Http.json` can now send a header or a POST (used by CourtListener and Semantic Scholar).
 - A benchmark protocol (`docs/benchmark-protocol.md`) and instruments for building one with independent labellers: a blind sheet, Cohen's kappa between labellers, and Wilson intervals. The 30-item corpus is still not a benchmark.
 

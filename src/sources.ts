@@ -34,6 +34,8 @@ export interface SearchSource {
 }
 
 const arr = (x: unknown): any[] => (Array.isArray(x) ? x : []);
+/** Titles from the indexes can carry markup and line breaks (CrossRef sends `<scp>AI</scp>` for small capitals). Compare the words, not the markup. */
+export const plainTitle = (s: unknown): string => String(s ?? '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 const mail = (m: string) => (m ? `&mailto=${encodeURIComponent(m)}` : '');
 export const openalexKey = (keys: Record<string, string>) => (keys.openalex ? `&api_key=${encodeURIComponent(keys.openalex)}` : '');
 
@@ -55,7 +57,7 @@ export const crossref: SearchSource = {
     return {
       ok: true,
       candidates: items.map((it: any) => ({
-        title: arr(it.title)[0] || '',
+        title: plainTitle(arr(it.title)[0]),
         authors: arr(it.author).map((a) => a.family || '').filter(Boolean),
         year: it.issued?.['date-parts']?.[0]?.[0] || 0,
         doi: it.DOI || '',
@@ -77,7 +79,7 @@ export const openalex: SearchSource = {
     return {
       ok: true,
       candidates: results.map((it: any) => ({
-        title: it.title || '',
+        title: plainTitle(it.title),
         authors: arr(it.authorships).map((a) => a.author?.display_name || '').filter(Boolean),
         year: it.publication_year || 0,
         doi: String(it.doi || '').replace(/^https?:\/\/doi\.org\//i, ''),
