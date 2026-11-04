@@ -17,12 +17,15 @@
   const btn = document.getElementById('theme');
   if (!btn) return;
   const root = document.documentElement;
-  const isDark = () => (root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches);
-  const label = () => btn.setAttribute('aria-label', isDark() ? 'Switch to light mode' : 'Switch to dark mode');
-  label();
+  const dark = matchMedia('(prefers-color-scheme: dark)');
+  const isDark = () => (root.dataset.theme ? root.dataset.theme === 'dark' : dark.matches);
+  const show = () => { btn.classList.toggle('is-dark', isDark()); btn.setAttribute('aria-label', isDark() ? 'Switch to light mode' : 'Switch to dark mode'); btn.setAttribute('aria-pressed', String(isDark())); };
+  show();
   btn.addEventListener('click', () => {
     root.dataset.theme = isDark() ? 'light' : 'dark';
     try { localStorage.setItem('as-theme', root.dataset.theme); } catch (e) { /* storage blocked: the choice lasts for this visit */ }
-    label();
+    show();
   });
+  // Until someone chooses, follow the device: if it switches at sunset, so does the page.
+  (dark.addEventListener ? dark.addEventListener('change', show) : dark.addListener && dark.addListener(show));
 })();

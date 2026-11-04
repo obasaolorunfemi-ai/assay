@@ -20,6 +20,7 @@ const HELP = `assay ${pkg.version}: check AI-written text against evidence
   assay grounding --draft FILE --claims FILE
   assay citations FILE [--mailto ADDRESS]        looks the citations up online
   assay retractions FILE [--mailto ADDRESS]      looks the DOIs up online
+  assay legal FILE                               checks US case citations at CourtListener (needs COURTLISTENER_TOKEN)
   assay links FILE                               requests the links in the file
   assay health [--mailto ADDRESS] [--strict]     asks every built-in source for a work it should know
 
@@ -106,6 +107,16 @@ if (command === 'quotes') {
   const { createRetractions } = await lib('retractions');
   report = await createRetractions({ ...(o.mailto ? { mailto: o.mailto } : {}) }).check(read(file));
   section = sections.retractions(report);
+  lines = report.verdicts.map((v) => [v.bucket, v.message]);
+} else if (command === 'legal') {
+  if (!file) die('legal needs a FILE');
+  // The token is read from the environment, never from an option: an option would be saved in your shell history and visible to other users of the machine.
+  const token = process.env.COURTLISTENER_TOKEN;
+  if (!token) die('legal needs your CourtListener token in the COURTLISTENER_TOKEN environment variable (not an option, which would be kept in your shell history). Get a free token with an account at https://www.courtlistener.com/, then: export COURTLISTENER_TOKEN=your-token');
+  console.error('Sending the text to courtlistener.com to look up its case citations.');
+  const { createLegal } = await lib('legal');
+  report = await createLegal({ token }).check(read(file));
+  section = sections.legal(report);
   lines = report.verdicts.map((v) => [v.bucket, v.message]);
 } else if (command === 'links') {
   if (!file) die('links needs a FILE');

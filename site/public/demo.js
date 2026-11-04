@@ -62,3 +62,30 @@ wire(['t-grounding', 'g-claims', 'g-draft'], grounding);
   const fromHash = 't-' + location.hash.slice(1);
   show(panels.some((p) => p.id === fromHash) ? fromHash : pick.value);
 })();
+
+/* A counter for this device only. It counts a flagged item once, when you finish editing a box (not on every key), and keeps a short fingerprint of it, never the text. */
+(() => {
+  const box = $('caught');
+  if (!box) return;
+  const KEY = 'as-caught';
+  let seen = [];
+  try { seen = JSON.parse(localStorage.getItem(KEY) || '[]').filter((x) => typeof x === 'string').slice(-1000); } catch (e) { /* no storage: it counts for this visit */ }
+  const n = $('caught-n');
+  const draw = () => { n.textContent = String(seen.length); };
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(seen.slice(-1000))); } catch (e) { /* ignore */ } };
+  const fp = (s) => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
+  box.hidden = false;
+  draw();
+  const count = (toolId) => {
+    let added = false;
+    for (const el of $(toolId + '-out').querySelectorAll('.out.bad strong')) {
+      const key = toolId + ':' + fp(el.textContent || '');
+      if (!seen.includes(key)) { seen.push(key); added = true; }
+    }
+    if (added) { save(); draw(); }
+  };
+  for (const [tool, ids] of [['t-quotes', ['q-source', 'q-quotes']], ['t-figures', ['f-draft', 'f-materials']], ['t-grounding', ['g-claims', 'g-draft']]]) {
+    for (const id of ids) $(id).addEventListener('change', () => setTimeout(() => count(tool), 250));
+  }
+  $('caught-reset').addEventListener('click', () => { seen = []; save(); draw(); });
+})();

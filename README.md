@@ -350,7 +350,24 @@ const r = await createLegal({ token: process.env.COURTLISTENER_TOKEN! }).check(b
 r.verdicts[0];   // { status: 'wrong-case', bucket: 'failed', caseName: 'Martinez v. …', message: '925 F.3d 1339 exists, but it is …, not "Varghese v. China Southern Airlines".' }
 ```
 
+**Where the token goes.** Create a free account at [courtlistener.com](https://www.courtlistener.com/) and copy your API token from your profile (CourtListener's API help links to your usage page at `courtlistener.com/profile/api-usage/`). Then keep it out of your code and your repository: put it in an environment variable called `COURTLISTENER_TOKEN`, and read it where you create the checker, as above. On your own machine, `export COURTLISTENER_TOKEN=…` in the shell (or a `.env` file that is listed in `.gitignore`). In Cloudflare Workers, `npx wrangler secret put COURTLISTENER_TOKEN`; on Netlify, an environment variable marked secret; in GitHub Actions, a repository secret passed with `env:`. From the command line: `COURTLISTENER_TOKEN=… assay legal brief.txt`. The command line accepts the token only from the environment, never as an option, because options are kept in shell history. The token is sent to courtlistener.com only.
+
 It needs a free CourtListener token, and sends the text to courtlistener.com: never pass confidential text. It is **server-side only** (`"browser": null`), so a token is never put in a page. Statuses: `found`; `wrong-case` (a real citation that belongs to a different case than the one named, the pattern in the 2023 sanctions case); `notfound` (not verified: CourtListener does not hold every court, so check before calling it invented); `ambiguous`, `unreadable` (a reporter it does not know), `limit` (over 250 citations in a request) and `unavailable`. Statutes, journals and *id.*/*supra* are out of scope for the API. Text over 60,000 characters is sent in parts. Built from the published API reference; **no live call has been made with a token**, so treat the first real run as the test.
+
+## Tally
+
+Assay itself counts nothing and sends nothing: a library that promises "no logging, no telemetry" cannot also keep a running score. If *you* want a counter for your own app ("12 invented citations blocked this month"), `@extrafemi-ai/assay/tally` is the piece. You feed it the reports your code already has; it keeps only numbers, never the text, the citations or the quotes; and you decide where the numbers go.
+
+```ts
+import { createTally } from '@extrafemi-ai/assay/tally';
+
+const tally = createTally();
+tally.add('citations', await assay.check(text));      // any Assay report
+tally.add('quotes', checkQuotes(items));
+tally.snapshot();   // { checked: 14, ok: 11, check: 1, failed: 2, skipped: 0, byCheck: { citations: {…}, quotes: {…} } }
+```
+
+`merge()` adds counts you kept elsewhere (another process, an earlier day), so you can store the snapshot in your own database and show it on your own page.
 
 ## Review, the loop, the command line
 

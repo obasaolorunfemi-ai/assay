@@ -219,7 +219,7 @@ const PAGES = {
 };
 const NAV = ['cases', 'try', 'start', 'evidence', 'checks', 'paper'];
 const PAPER = ['heal', 'limits', 'security', 'changelog'];
-const THEME_BTN = '<button type="button" class="icon-btn" id="theme" aria-label="Switch to dark mode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>';
+const THEME_BTN = '<button type="button" class="icon-btn" id="theme" aria-label="Switch to dark mode" title="Light or dark"><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.3M12 19.2v2.3M2.5 12h2.3M19.2 12h2.3M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg></button>';
 const MENU_BTN = '<button type="button" class="icon-btn menu-btn" id="menu" aria-expanded="false" aria-controls="sections" aria-label="Open menu"><svg class="i-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="i-close" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
 const sitebar = (key) => `<div class="col sitebar-in"><a class="brand" href="/">Assay</a><nav class="sections" id="sections" aria-label="Site">${NAV.map((k) => `<a href="${PAGES[k][0]}"${k === key || (k === 'paper' && PAPER.includes(key)) ? ' aria-current="page"' : ''}>${PAGES[k][1]}</a>`).join('')}<a href="${GH}">GitHub</a><a href="${NPM}">npm</a></nav>${THEME_BTN}${MENU_BTN}</div>`;
 const foot = `<footer class="site-foot"><div class="col"><div class="foot-grid">
@@ -266,7 +266,15 @@ ${foot}
 </html>
 `;
 }
-const doc = (h1, lede, inner, kicker = '', byline = '', cls = '') => `<main class="col page${cls ? ' ' + cls : ''}" id="main">${kicker ? `<p class="tag"><a href="/paper/">Technical paper</a> · ${kicker}</p>` : ''}<h1>${h1}</h1>${byline ? `<p class="authors">${byline}</p>` : ''}<p class="lede">${lede}</p><div class="prose">${inner}</div></main>`;
+const tocOf = (html) => [...html.matchAll(/<h2 id="([^"]+)"[^>]*>(.*?)<\/h2>/g)].map((m) => [m[1], m[2].replace(/<[^>]*>/g, '')]);
+const doc = (h1, lede, inner, kicker = '', byline = '', cls = '') => {
+  const toc = tocOf(inner);
+  const list = `<ol>${toc.map(([id, t]) => `<li><a href="#${id}">${t}</a></li>`).join('')}</ol>`;
+  const grid = toc.length >= 3
+    ? `<details class="toc-top"><summary>On this page</summary>${list}</details><div class="page-grid"><nav class="toc-side" aria-label="On this page"><p class="toc-title">On this page</p>${list}</nav><div class="prose">${inner}</div></div>`
+    : `<div class="prose">${inner}</div>`;
+  return `<main class="col page${cls ? ' ' + cls : ''}" id="main">${kicker ? `<p class="tag"><a href="/paper/">Technical paper</a> · ${kicker}</p>` : ''}<h1>${h1}</h1>${byline ? `<p class="authors">${byline}</p>` : ''}<p class="lede">${lede}</p>${grid}</main>`;
+};
 
 /* ---------- the pages ---------- */
 const outputBlock = (o) => `<div class="out ${o.cls}"><strong>${esc(o.head)}</strong><p>${esc(o.text)}</p>${o.cap ? `<p class="cap">${esc(o.cap)}</p>` : ''}</div>`;
@@ -313,6 +321,18 @@ ${story(ex('Grounding'), 'A number tied to the wrong fact', `The AI says the rat
 ${story(ex('Values'), 'The right source, the wrong year', `A draft says Nigerian remittances reached $25 billion in 2023. The World Bank figure for that year is about $19.5 billion.`)}
 </div>
 <p class="actions"><a class="pill" href="/cases/">These are small. Read the cases that cost real money</a></p>
+</div></section>
+<section class="band"><div class="col">
+<h2>What it has caught, so far</h2>
+<p class="sub">These are counted from the project's own work, and each one links to where it comes from. They are not usage statistics: Assay has no telemetry, so it cannot see what it catches in other people's apps. That is a promise, not a gap.</p>
+<ul class="tally">
+<li><span class="num">15 of 30</span><p>citations written by free models that turned out invented or wrongly linked, in a hand-labelled sample from 3 November 2026.</p><a href="/paper/#8-evaluation">The sample, and why it is not a benchmark</a></li>
+<li><span class="num">34 of 36</span><p>references in the project's two technical papers were verified by Assay itself; two could not be checked because a source was throttling, and none failed or was retracted.</p><a href="/paper/#7-verifying-the-library">How that was run</a></li>
+<li><span class="num">1</span><p>real bug in Assay found by Assay: a correctly cited paper looked wrong because its title carried markup. Fixed in 0.4.0.</p><a href="/changelog/">In the changelog</a></li>
+<li><span class="num">10</span><p>places where Assay's own text parsing could be made to run for minutes on hostile input, found by measuring and fixed before release.</p><a href="/security/">In the security notes</a></li>
+</ul>
+<p class="sub">Want a counter for your own app? <code>createTally()</code> keeps only numbers, never text, and you decide where they go. Try the checks yourself: the demo counts what it catches for you, on your device only.</p>
+<p class="actions"><a class="pill" href="/try/">Try the checks</a><a class="pill" href="${GH}#tally">About the tally helper</a></p>
 </div></section>
 <section class="band"><div class="col">
 <h2>Why a red mark is worth believing</h2>
@@ -500,6 +520,7 @@ const field = (id, label, value, rows = 4) => `<div><label for="${id}">${label}<
 const tryPage = `<main class="col page" id="main"><h1>Try the offline checks</h1>
 <p class="lede">These run in your browser, with the same code as the package. Nothing you type leaves this page: its security policy does not allow it to make a request at all.</p>
 <div class="picker"><label for="pick">Choose a check</label><select id="pick"><option value="t-quotes">Quotes: is this quote really in the source?</option><option value="t-figures">Figures: did I make up a number?</option><option value="t-grounding">Grounding: does every number trace to an approved fact?</option></select></div>
+<p class="caught" id="caught" hidden><span>Fake or unsupported things caught here, on this device: <strong id="caught-n">0</strong></span><button type="button" class="linkbtn" id="caught-reset">Reset</button><small>Counted when you finish editing a box. Kept in this browser only and never sent anywhere: this page cannot make a request.</small></p>
 <div class="tools" id="tools">
 ${tool('t-quotes', 'Quotes', 'Is each quote really in the source text? One quote per line.', field('q-source', 'Source text', posting, 4) + field('q-quotes', 'Quotes to check', 'We offer visa sponsorship for this role\nRelocation is available for all staff', 3))}
 ${tool('t-figures', 'Figures', 'Does every number in the draft appear in the materials you supplied?', field('f-draft', 'Draft', draftF, 3) + field('f-materials', 'Your materials', materialsF, 3))}
@@ -542,9 +563,7 @@ const evidTable = `<div class="table-wrap wide"><table><thead><tr><th>Check</th>
 const tierTable = `<div class="table-wrap"><table><thead><tr><th>Tier</th><th>What it is</th><th>May it carry a claim?</th></tr></thead><tbody><tr><td><strong>0</strong></td><td>Your own first-party data</td><td>Yes</td></tr><tr><td><strong>1</strong></td><td>An authority within its mandate</td><td>Yes</td></tr><tr><td><strong>2</strong></td><td>A specialist</td><td>Yes</td></tr><tr><td><strong>3</strong></td><td>The press</td><td>Yes, but a loss estimate, a causal or legal claim needs a tier-2 source or better</td></tr><tr><td><strong>4</strong></td><td>An aggregator: it points to a source and is never one</td><td>Never alone</td></tr></tbody></table></div>`;
 const bucketTable = `<div class="table-wrap"><table><thead><tr><th>Bucket</th><th>Means</th></tr></thead><tbody><tr><td><strong>ok</strong></td><td>Nothing was found against it, by the evidence this check accepts.</td></tr><tr><td><strong>check</strong></td><td>Look at it: the evidence is partial, ambiguous, or could not be gathered. This includes every “could not look”.</td></tr><tr><td><strong>failed</strong></td><td>The evidence this check accepts contradicts it, or is missing where it should exist. Do not rely on it.</td></tr><tr><td><strong>skip</strong></td><td>Not checked, and nothing is implied.</td></tr></tbody></table></div>`;
 const EVID_CITE = 'Olorunfemi, O., & Olusegun, P. (2026). Assay: Checking AI-written text against evidence, one question at a time (Technical report, version 1.0). Extrafemi Research. https://assay.extrafemi.com/paper/';
-const evidencePage = `<main class="col page" id="main"><h1>What counts as evidence</h1>
-<p class="lede">A verdict is only as good as what the text was compared with. This page says exactly what Assay counts as evidence, why, and which sources it uses, so that anyone can disagree with a verdict by opening the same record.</p>
-<div class="prose">
+const evidencePage = doc('What counts as evidence', 'A verdict is only as good as what the text was compared with. This page says exactly what Assay counts as evidence, why, and which sources it uses, so that anyone can disagree with a verdict by opening the same record.', `
 ${md(`## 1. Why this page exists
 
 A tool that says "verified" without saying *against what* is asking to be trusted blindly. Assay does not ask for that. Every verdict names the comparison it made, and this page is the definition behind those words.`)}
@@ -615,7 +634,7 @@ Assay is free and open source under the MIT licence. To cite the method:`)}
 ${md(`## 11. Corrections
 
 If a source is described wrongly, a limit is missing, or a definition here does not match what Assay does, open an issue on [GitHub](${GH}). This page is generated in part from the code: the self-test works in section 4 are read from the sources themselves.`)}
-</div></main>`;
+`);
 
 /* ---------- the disclaimer ---------- */
 const disclaimerPage = doc('Disclaimer', 'Please read this before you rely on anything on this site or in Assay. Last updated 4 November 2026.', md(`## Not advice

@@ -27,7 +27,7 @@ jobs:
       - name: Every entry point loads from the built package
         run: node scripts/smoke.mjs
       - name: The command line runs
-        run: node bin/assay.mjs --version && printf 'a real sentence in the source text' > /tmp/s.txt && node bin/assay.mjs quotes --source /tmp/s.txt --quote 'a real sentence in the source'
+        run: node bin/assay.mjs --version && printf 'a real sentence in the source text' > /tmp/s.txt && node bin/assay.mjs quotes --source /tmp/s.txt --quote 'a real sentence in the source' && (env -u COURTLISTENER_TOKEN node bin/assay.mjs legal /tmp/s.txt; test $? -eq 2)
       - name: The site builds from the real code (its examples assert what the page says)
         run: node site/build.mjs
       - name: The committed site is the one the build produces (Cloudflare serves site/public as it is, with no build step)

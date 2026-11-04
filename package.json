@@ -65,6 +65,10 @@
       "browser": null,
       "types": "./dist/legal.d.ts",
       "import": "./dist/legal.js"
+    },
+    "./tally": {
+      "types": "./dist/tally.d.ts",
+      "import": "./dist/tally.js"
     }
   },
   "files": [
