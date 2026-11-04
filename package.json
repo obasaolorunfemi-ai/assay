@@ -44,6 +44,10 @@
       "types": "./dist/draft.d.ts",
       "import": "./dist/draft.js"
     },
+    "./own": {
+      "types": "./dist/own.d.ts",
+      "import": "./dist/own.js"
+    },
     "./gate": {
       "types": "./dist/gate.d.ts",
       "import": "./dist/gate.js"

@@ -13,6 +13,7 @@ entry point, and you use only the ones your scenario needs.
 | **names** | the materials you supply: is every person, organisation, link and DOI in a draft one of theirs? | **no** | `@extrafemi-ai/assay/names` |
 | **claims** | the materials you supply: does the draft say something about the person (led, large, founded, PhD, a tool) that the materials never say? | **no** | `@extrafemi-ai/assay/claims` |
 | **references** | the materials you supply: does the draft lean on a source (an author and year, "according to…", "studies show") that the materials never mention? | **no** | `@extrafemi-ai/assay/references` |
+| **own** | the person's own CV, profile and letters, as a place a citation can be found (a citation source; no request) | **no** | `@extrafemi-ai/assay/own` |
 | **draft** | all of the above and figures, in one call | **no** | `@extrafemi-ai/assay/draft` |
 | **gate** | a policy about sources: is each claim sourced well enough to be stated? | **no** | `@extrafemi-ai/assay/gate` |
 | **grounding** | a list of approved claims: does every figure in a draft trace to one, and match it? | **no** | `@extrafemi-ai/assay/grounding` |
@@ -361,6 +362,19 @@ import { checkReferences } from '@extrafemi-ai/assay/references';
 checkReferences('As Adeyemi et al. (2021) show, research shows this works.', cv).verdicts.map((v) => v.source);
 // ["Adeyemi et al., 2021", "research shows"]
 ```
+
+## Own materials
+
+A person's own publications sit in their own documents (a CV, a profile, an earlier letter). Sending them to a public index to be "verified" is slow, and it leaks what they wrote. `ownMaterials` is a citation source that reads works out of the text you give it and answers locally, with no request. Put it first and a citation the person's own materials list is confirmed there; the rest fall through to the public indexes as before.
+
+```ts
+import { createAssay, defaultSources } from '@extrafemi-ai/assay';
+import { ownMaterials } from '@extrafemi-ai/assay/own';
+
+const assay = createAssay({ sources: [ownMaterials([cv, profile, letters]), ...defaultSources] });
+```
+
+It reads the bracketed form the citations check reads, a reference line written the usual way (`Okafor, A. & Bello, B. (2019). Title of the work. Venue.`), and a quoted title with a year and the author's name before it. The same materials are what the figures, names, references and claims checks are given, so one list of "what this person has said" backs every check.
 
 ## Draft
 

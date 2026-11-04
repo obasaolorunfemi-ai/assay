@@ -9,6 +9,7 @@ export { checkNames } from './names.js';
 export { checkClaims } from './claims.js';
 export { checkReferences } from './references.js';
 export { checkDraft } from './draft.js';
+export { ownWorks } from './own.js';
 export { checkGrounding, stripTags } from './grounding.js';
 export { createGate, summariseRecency } from './gate.js';
 export { worldBankUrlInfo } from './values.js';
