@@ -261,7 +261,7 @@ const doc = (h1, lede, inner, kicker = '') => `<main class="col page" id="main">
 /* ---------- the pages ---------- */
 const outputBlock = (o) => `<div class="out ${o.cls}"><strong>${esc(o.head)}</strong><p>${esc(o.text)}</p>${o.cap ? `<p class="cap">${esc(o.cap)}</p>` : ''}</div>`;
 
-const story = (e, title, said) => `<article class="card" id="ex-${slug(e.name)}"><h3>${title}</h3><p class="what">${said}</p><div class="out ${e.out.cls}"><strong>Assay says</strong><p>${esc(e.out.text.replace(/^[a-z]+(-[a-z]+)+: /, ''))}</p></div><details><summary>Show the code</summary><pre><code>${esc(e.code)}</code></pre><p class="imp">${esc(`import … from '${importPath(e.sub)}'`)}</p></details></article>`;
+const story = (e, title, said) => `<article class="card" id="ex-${slug(e.name)}"><h3>${title}</h3><p class="what">${said}</p><div class="out ${e.out.cls}"><strong>Assay says</strong><p>${esc(e.out.text.replace(/^[a-z]+(-[a-z]+)+: /, '').replace(/^[a-z]/, (c) => c.toUpperCase()))}</p></div><details><summary>Show the code</summary><pre><code>${esc(e.code)}</code></pre><p class="imp">${esc(`import … from '${importPath(e.sub)}'`)}</p></details></article>`;
 const ex = (n) => EXAMPLES.find((e) => e.name === n);
 const PICK = [
   ['Is this paper real?', 'Citations', 'Looks it up online'],
@@ -284,7 +284,7 @@ const home = `<main id="main">
 <h2>Where AI goes wrong</h2>
 <p class="sub">The last four are real runs: Assay checked the text described, when this page was built. Open “Show the code” to see the call.</p>
 <div class="cards">
-<article class="card"><h3>A paper that does not exist</h3><p class="what">Asked for sources, AI models write convincing ones: a real author with a title they never wrote, or a link that goes to a different paper. In a test of free models, some citations were invented outright.</p><div class="out good"><strong>Assay says</strong><p>It looks each citation up in public records of papers and books, and says found, look again, or not found. If a record service is down, it says it could not look. It never calls that “not found”.</p></div></article>
+<article class="card"><h3>A paper that does not exist</h3><p class="what">Asked for sources, AI models write convincing ones: a real author with a title they never wrote, or a link that goes to a different paper. In a test of free models, some citations were invented outright.</p><div class="out plain"><strong>What Assay does</strong><p>It looks each citation up in public records of papers and books, and says found, look again, or not found. If a record service is down, it says it could not look. It never calls that “not found”.</p></div></article>
 ${story(ex('Quotes'), 'A quote nobody wrote', `You asked for an exact quote from a job posting. The AI wrote “Relocation is available for all staff.” The posting says relocation is for senior staff only.`)}
 ${story(ex('Figures'), 'A number from nowhere', `Your draft says “5,000 beneficiaries”. The brief you gave the AI never mentions that number, but it does mention 40% and three districts.`)}
 ${story(ex('Grounding'), 'A number tied to the wrong fact', `The AI says the rate moved to ₦425 and tags the line as coming from a fact that says ₦645.19.`)}

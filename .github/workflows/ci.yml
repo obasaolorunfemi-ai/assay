@@ -26,3 +26,5 @@ jobs:
       - run: npm run build
       - name: Every entry point loads from the built package
         run: node scripts/smoke.mjs
+      - name: The site builds from the real code (its examples assert what the page says)
+        run: node site/build.mjs
