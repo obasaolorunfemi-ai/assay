@@ -235,3 +235,14 @@ details[open] summary { margin-bottom: .5rem; }
 .sec-head { display: flex; flex-wrap: wrap; gap: .8rem 1.5rem; justify-content: space-between; align-items: flex-end; margin-bottom: 1.2rem; }
 .sec-head h2 { margin: 0 !important; }
 .sec-head .sub { margin: .5rem 0 0; }
+
+.cases { display: grid; gap: clamp(1rem, 2vw, 1.6rem); margin: 0 0 2rem; }
+.case { border: 1px solid var(--rule); border-radius: 18px; background: var(--surface); padding: clamp(1.1rem, 2vw, 2rem); display: flex; flex-direction: column; gap: .6rem; }
+.case h2 { font-size: clamp(1.5rem, 1.25rem + 1vw, 2.2rem); line-height: 1.12; margin: 0; }
+.case p { margin: 0; color: var(--ink-2); max-width: 56rem; }
+.case .small, .small { font-size: .88rem; color: var(--ink-3); }
+.verdict { border-radius: 12px; padding: .8rem 1rem; }
+.verdict.yes { background: var(--good-wash); color: var(--good); }
+.verdict.partly { background: var(--warn-wash); color: var(--warn); }
+.verdict.no { background: var(--bad-wash); color: var(--bad); }
+.verdict p { color: inherit; margin-top: .25rem; }
