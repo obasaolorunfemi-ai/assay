@@ -127,6 +127,8 @@ function inline(s) {
   let t = esc(s).replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return `\u0000${codes.length - 1}\u0000`; });
   t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   t = t.replace(/(^|[^*\w])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
+  // A bare address in the text becomes a link (the references are written that way); an address already inside [text](url) is left to the rule below.
+  t = t.replace(/(?<!\]\()(?<!["=>])\bhttps?:\/\/[^\s<>"')\]]*[^\s<>"')\].,;]/g, (u) => `<a href="${u}">${u}</a>`);
   t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, txt, href) => `<a href="${hrefOf(href.replace(/&amp;/g, '&'))}">${txt}</a>`);
   return t.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codes[i]}</code>`);
 }
@@ -259,7 +261,7 @@ ${foot}
 </html>
 `;
 }
-const doc = (h1, lede, inner, kicker = '') => `<main class="col page" id="main">${kicker ? `<p class="tag"><a href="/paper/">Technical paper</a> · ${kicker}</p>` : ''}<h1>${h1}</h1><p class="lede">${lede}</p><div class="prose">${inner}</div></main>`;
+const doc = (h1, lede, inner, kicker = '', byline = '') => `<main class="col page" id="main">${kicker ? `<p class="tag"><a href="/paper/">Technical paper</a> · ${kicker}</p>` : ''}<h1>${h1}</h1>${byline ? `<p class="authors">${byline}</p>` : ''}<p class="lede">${lede}</p><div class="prose">${inner}</div></main>`;
 
 /* ---------- the pages ---------- */
 const outputBlock = (o) => `<div class="out ${o.cls}"><strong>${esc(o.head)}</strong><p>${esc(o.text)}</p>${o.cap ? `<p class="cap">${esc(o.cap)}</p>` : ''}</div>`;
@@ -406,10 +408,11 @@ const startPage = doc('Get started', 'Install it, pick the check that fits, read
 
 const paperSrc = readFileSync(join(root, 'docs/paper.md'), 'utf8').replace(/\r/g, '');
 const paperTitle = paperSrc.match(/^# (.*)$/m)[1];
+const paperAuthors = paperSrc.match(/^\*\*Authors:\*\* (.*)$/m)[1];
 const paperStatus = paperSrc.match(/^\*(.*)\*$/m)[1];
-const paperBody = paperSrc.replace(/^# .*$/m, '').replace(/^\*.*\*$/m, '').split('\n## Appendices')[0];
+const [paperBody, paperRefs] = paperSrc.replace(/^# .*$/m, '').replace(/^\*\*Authors:\*\*.*$/m, '').replace(/^\*.*\*$/m, '').split('\n## References\n');
 const appendices = [['/checks/', 'Reference', 'Every check, option, status and message.'], ['/self-healing/', 'Self-healing', 'The full description of how the network checks keep working when their sources do not.'], ['/limits/', 'What it cannot do', 'The limits, in the README’s own words, and what happens to your data.'], ['/security/', 'Security policy', 'Reporting, publishing, repository protections and the link checker’s guarantees.'], ['/changelog/', 'Changelog', 'What changed, release by release.']];
-const paperPage = doc(esc(paperTitle), esc(paperStatus), `${md(paperBody)}<h2 id="appendices">Appendices</h2><ul class="parts">${appendices.map(([h, t, d]) => `<li><a href="${h}">${t}</a><span>${d}</span></li>`).join('')}</ul>`);
+const paperPage = doc(esc(paperTitle), esc(paperStatus), `${md(paperBody)}<h2 id="appendices">Appendices</h2><p>Material kept alongside the report:</p><ul class="parts">${appendices.map(([h, t, d]) => `<li><a href="${h}">${t}</a><span>${d}</span></li>`).join('')}</ul><h2 id="references">References</h2><div class="refs">${md(paperRefs, { minLevel: 3 })}</div>`, '', esc(paperAuthors));
 
 
 /* ---------- the cases page: every figure here was read from a court decision, a tribunal decision, a published study or press reports, and is attributed ---------- */

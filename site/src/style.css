@@ -246,3 +246,8 @@ details[open] summary { margin-bottom: .5rem; }
 .verdict.partly { background: var(--warn-wash); color: var(--warn); }
 .verdict.no { background: var(--bad-wash); color: var(--bad); }
 .verdict p { color: inherit; margin-top: .25rem; }
+
+.authors { font: 500 clamp(1.05rem, 1rem + .4vw, 1.3rem)/1.4 var(--f-display); color: var(--ink); margin: .6rem 0 .8rem; }
+.refs ul { list-style: none; padding-left: 0; }
+.refs li { padding-left: 2rem; text-indent: -2rem; margin-bottom: .7rem; font-size: .93rem; overflow-wrap: anywhere; }
+.refs h3 { margin-top: 1.8rem; }
