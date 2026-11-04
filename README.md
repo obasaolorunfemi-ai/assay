@@ -10,6 +10,7 @@ entry point, and you use only the ones your scenario needs.
 | **citations** | public records of papers and books (CrossRef, OpenAlex, Open Library, the DOI registries) | yes | `@extrafemi-ai/assay` |
 | **quotes** | the source text you supply: is this sentence really in it? | **no** | `@extrafemi-ai/assay/quotes` |
 | **figures** | the materials you supply: does every number come from them? | **no** | `@extrafemi-ai/assay/figures` |
+| **names** | the materials you supply: is every person, organisation, link and DOI in a draft one of theirs? | **no** | `@extrafemi-ai/assay/names` |
 | **gate** | a policy about sources: is each claim sourced well enough to be stated? | **no** | `@extrafemi-ai/assay/gate` |
 | **grounding** | a list of approved claims: does every figure in a draft trace to one, and match it? | **no** | `@extrafemi-ai/assay/grounding` |
 | **links** | the live web: is the page there? (server-side only) | yes | `@extrafemi-ai/assay/links` |
@@ -307,6 +308,25 @@ Left out on purpose: the word "one", ordinals ("40th"), list numbering, and digi
 
 `@extrafemi-ai/assay/figures` also exports `extractFigures`, `extractYears`, and `evalFormula`: arithmetic over named values
 (`"(c3-c7)/c7*100"`) evaluated without `eval`, which throws on anything that is not arithmetic, on an unknown name and on division by zero.
+
+## Names
+
+Figures catches an invented number. Names catches the other thing a model invents when it has nothing real to say: a partner organisation, an earlier employer, a report, a link. "Our partnership with the Greenfield Foundation" and "my earlier role at Acme Capital" contain no digit, so a figures check passes them. `checkNames` reads every capitalised name and acronym in a draft and checks that each word of it appears in the materials you supplied (a CV, a brief, a call for proposals), and does the same for links, DOIs and email addresses.
+
+```ts
+import { checkNames, findUnsupportedNames } from '@extrafemi-ai/assay/names';
+
+const r = checkNames(draft, [cv, brief, call]);
+r.summary.text;   // "Names: 4 · ✓ 2 in your materials · ✕ 2 not in your materials — check they exist and are yours to claim."
+findUnsupportedNames(draft, [cv, brief, call]);   // ["Greenfield Foundation", "Acme Capital"]
+```
+
+- **Words, not strings.** A name is supported when every capitalised word in it is in the materials, in any form of the word ("Nigeria" supports "Nigerian"). "Bank of America" joins across *of*, *for* and *the*; "Okafor & Bello" is two names.
+- **The first word of a sentence** is capital by grammar, so it is not a name on its own. It counts when it leads straight into another capitalised word and does not read as a verb ("Greenfield Foundation launched…" is checked; "Built Oneremit Payments" is not flagged for *Built*).
+- **Links, DOIs and addresses** must appear in the materials, compared without the scheme, `www.` or a trailing slash. A source you did not supply is one to check.
+- **`ignore`** adds words that are never names in your text; `links: false` leaves links out.
+
+What it does not do: it reads capitals, so an invented name written in lower case is not caught, and a real name the writer never put in the materials is flagged (that is the point: someone should check it). It does not know what a name is *about*, and it does not check the world, only your materials, so it is safe on private text and a test enforces that it never touches the network.
 
 ## Support
 
