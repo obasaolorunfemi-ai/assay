@@ -297,7 +297,7 @@ Extracted from [Whetstone](https://whetstone.extrafemi.com), where it runs under
 
 ## Releases
 
-Bump `version` in `package.json`, commit, then push a tag that matches it (for example `git tag v0.2.0 && git push origin v0.2.0`). The release workflow waits for a
+Bump `version` in `package.json`, commit, then push a tag that matches it (for example `git tag v0.3.0 && git push origin v0.3.0`). The release workflow waits for a
 human to approve in the `npm-publish` environment, runs the type check, tests and build, and publishes with npm trusted publishing and
 provenance. No npm token is stored anywhere.
 

@@ -4,6 +4,8 @@ Versions before 1.0 may change between minor releases; each change that could br
 
 ## 0.3.0
 
+**The first version published to npm.** 0.1.0 and 0.2.0 were development versions and were never released; everything in their sections below ships in 0.3.0. (0.2.0's text parsing had quadratic patterns, fixed here: do not look for it.)
+
 **Self-healing citation checks.** See the README. A throttled, broken or changed source can no longer turn into an accusation, and the checker recovers by itself.
 
 - Source health: a breaker per source (three failures, or a `Retry-After`, then it is left alone, capped at 15 minutes, then probed), `health()`.
