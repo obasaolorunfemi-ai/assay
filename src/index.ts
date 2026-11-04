@@ -6,7 +6,7 @@ export { strip } from './strip.js';
 export { escapeHtml } from './escape.js';
 export type { StripOptions } from './strip.js';
 export { summarize, bucketOf } from './verdict.js';
-export { crossref, openalex, openlibrary, defaultSources } from './sources.js';
+export { crossref, openalex, openlibrary, pubmed, semanticscholar, defaultSources } from './sources.js';
 export type { SearchSource, SearchQuery, SearchResult, SourceContext } from './sources.js';
 export { linkKind, doiFromUrl } from './links.js';
 export { titleSimilarity, nameKey } from './text.js';

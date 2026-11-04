@@ -103,6 +103,60 @@ export const openlibrary: SearchSource = {
   },
 };
 
+/** PubMed (NCBI E-utilities, free, no key): the biomedical literature, including work CrossRef and OpenAlex index poorly. Opt in with `sources: [...defaultSources, pubmed]`. */
+export const pubmed: SearchSource = {
+  name: 'PubMed',
+  authorMode: 'family',
+  canary: { title: 'The sequence of the human genome', surname: 'Venter', authors: ['Venter'] },
+  async search(q, http) {
+    // Not a quoted phrase: PubMed answers a quoted title it has not indexed as a phrase with nothing at all. Best-match order puts the real paper first.
+    const term = `${q.title.replace(/["\[\]]/g, ' ').trim()}[Title]`;
+    const found = await http.json(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=8&sort=relevance&term=${encodeURIComponent(term)}`);
+    const ids = (found.body as any)?.esearchresult?.idlist;
+    if (!found.ok || !Array.isArray(ids)) return failed(found);
+    if (!ids.length) return { ok: true, candidates: [] };
+    const r = await http.json(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=${ids.map(String).map(encodeURIComponent).join(',')}`);
+    const result = (r.body as any)?.result;
+    if (!r.ok || !result || !Array.isArray(result.uids)) return failed(r);
+    return {
+      ok: true,
+      candidates: (result.uids as string[]).map((id) => result[id]).filter(Boolean).map((it: any) => ({
+        title: String(it.title || '').replace(/\.$/, ''),
+        // PubMed writes "Alkaissi H": the surname is everything before the trailing initials.
+        authors: arr(it.authors).map((a) => String(a.name || '').replace(/\s+[A-Z]{1,3}$/, '')).filter(Boolean),
+        year: parseInt(String(it.pubdate || '').slice(0, 4), 10) || 0,
+        doi: String(arr(it.articleids).find((x) => x?.idtype === 'doi')?.value || ''),
+        article: arr(it.pubtype).some((t) => /journal article/i.test(String(t))),
+        venue: String(it.source || ''),
+      })),
+    };
+  },
+};
+
+/** Semantic Scholar (free; a shared pool without a key, a key lifts it): broad coverage, strong on computer science. Opt in with `sources: [...defaultSources, semanticscholar]`; pass `keys: { semanticscholar }`.
+ *  Built from the published API reference; the unauthenticated pool answered 429 throughout testing, so no live response has been read. A reply of the wrong shape is treated as an outage. */
+export const semanticscholar: SearchSource = {
+  name: 'Semantic Scholar',
+  canary: { title: 'Attention Is All You Need', surname: 'Vaswani', authors: ['Vaswani'] },
+  async search(q, http, { keys }) {
+    const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(q.title)}&limit=10&fields=title,year,authors,externalIds,venue,publicationTypes`;
+    const r = await http.json(url, keys.semanticscholar ? { headers: { 'x-api-key': keys.semanticscholar } } : undefined);
+    const data = (r.body as any)?.data;
+    if (!r.ok || !Array.isArray(data)) return failed(r);
+    return {
+      ok: true,
+      candidates: data.map((it: any) => ({
+        title: it.title || '',
+        authors: arr(it.authors).map((a) => a?.name || '').filter(Boolean),
+        year: Number(it.year) || 0,
+        doi: String(it.externalIds?.DOI || ''),
+        article: arr(it.publicationTypes).includes('JournalArticle'),
+        venue: it.venue || '',
+      })),
+    };
+  },
+};
+
 export const defaultSources: SearchSource[] = [crossref, openalex, openlibrary];
 
 /** Do the candidate's authors include these surnames? Accents are folded. */

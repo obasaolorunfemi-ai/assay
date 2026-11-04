@@ -14,6 +14,9 @@ entry point, and you use only the ones your scenario needs.
 | **grounding** | a list of approved claims: does every figure in a draft trace to one, and match it? | **no** | `@extrafemi-ai/assay/grounding` |
 | **links** | the live web: is the page there? (server-side only) | yes | `@extrafemi-ai/assay/links` |
 | **values** | a source's own data (World Bank, IMF, or figures you seeded): does the number match, for that year? | yes | `@extrafemi-ai/assay/values` |
+| **support** | a source text you supply: does it actually *back* this sentence? (you supply the model that judges; Assay verifies its evidence) | **no** (your judge may) | `@extrafemi-ai/assay/support` |
+| **retractions** | Crossref's notices, including Retraction Watch: has this paper been retracted? | yes | `@extrafemi-ai/assay/retractions` |
+| **legal** | CourtListener's database of US court decisions: are these case citations real, and is that the case named? (server-side, needs a free token) | yes | `@extrafemi-ai/assay/legal` |
 
 The ones that check against *your own material or policy* never touch the network, and a test enforces that, so they are safe to run on private text
 such as a CV. Only citations sends anything out (the author, title, year and link of each citation, never the surrounding text).
@@ -263,6 +266,63 @@ Left out on purpose: the word "one", ordinals ("40th"), list numbering, and digi
 
 `@extrafemi-ai/assay/figures` also exports `extractFigures`, `extractYears`, and `evalFormula`: arithmetic over named values
 (`"(c3-c7)/c7*100"`) evaluated without `eval`, which throws on anything that is not arithmetic, on an unknown name and on division by zero.
+
+## Support
+
+Everything above shows that something exists or is traceable. `support` asks whether a source text actually *backs* a sentence. Assay has no model in it: you give it a `judge`, a function that asks whatever model you trust, and Assay holds the judge to its one rule everywhere: **a model may contradict, but it cannot verify.**
+
+```ts
+import { createSupport } from '@extrafemi-ai/assay/support';
+
+const support = createSupport({
+  judge: async ({ claim, source }) => askYourModel(claim, source),   // must answer { verdict: 'supports' | 'contradicts' | 'unrelated', evidence?: string }
+});
+const r = await support.check([{ id: 'a', claim: 'Attendance rose 40% year on year.', source: brief }]);
+r.summary.text;   // "Support: 1 · ≈ 1 to confirm"
+```
+
+- **Numbers first, with no model.** A figure in the claim that is not in the source fails at once and the judge is not asked.
+- **The evidence must be real.** The judge has to quote a sentence from the source; the quote is checked with the quotes check. "Supports" with a quote that is not in the source is `evidence-invented`, a failure.
+- **Even then, "to confirm".** A quote that is really there, which a model says means the same as the claim, is `check`, not `ok`: the model's reading is the part nobody verified. `trustJudge: true` counts it as `ok` if you accept that.
+- **A model that says "contradicts" is believed only if it shows where.** With the quote in the source it is a failure; without, it is to look at.
+- An unreachable judge, a timeout or an unreadable answer is `unavailable` and retryable, never an accusation. Assay makes no request itself, but your judge probably does: do not send private text to a model you would not send it to anyway.
+
+## Retractions
+
+A citation can be real, its link live, and the paper withdrawn. Crossref's records carry retraction, withdrawal and correction notices, including the Retraction Watch database Crossref now holds.
+
+```ts
+import { createRetractions } from '@extrafemi-ai/assay/retractions';
+
+const r = await createRetractions({ mailto: 'you@example.org' }).check(textOrListOfDois);
+r.verdicts[0];   // { status: 'retracted', bucket: 'failed', notice: { type: 'retraction', date: '2010-02-06', source: 'retraction-watch' }, … }
+```
+
+Statuses: `retracted` (also withdrawn or removed; a title that starts "RETRACTED" counts), `concern` (expression of concern: to check), `corrected` (ok, with the note), `clear` (no notice recorded), `not-in-crossref` (skipped, not cleared), `unavailable`. "Clear" is not proof: notices reach Crossref from publishers and Retraction Watch, and some are late. It reads every DOI in a text, at most 50 by default.
+
+## Legal
+
+Invented case law is the best-documented harm from AI-written text. `legal` asks CourtListener (the Free Law Project's database of US decisions) about every case citation in a text, through its citation-lookup API, which exists for this.
+
+```ts
+import { createLegal } from '@extrafemi-ai/assay/legal';
+
+const r = await createLegal({ token: process.env.COURTLISTENER_TOKEN! }).check(brief);
+r.verdicts[0];   // { status: 'wrong-case', bucket: 'failed', caseName: 'Martinez v. …', message: '925 F.3d 1339 exists, but it is …, not "Varghese v. China Southern Airlines".' }
+```
+
+It needs a free CourtListener token, and sends the text to courtlistener.com: never pass confidential text. It is **server-side only** (`"browser": null`), so a token is never put in a page. Statuses: `found`; `wrong-case` (a real citation that belongs to a different case than the one named, the pattern in the 2023 sanctions case); `notfound` (not verified: CourtListener does not hold every court, so check before calling it invented); `ambiguous`, `unreadable` (a reporter it does not know), `limit` (over 250 citations in a request) and `unavailable`. Statutes, journals and *id.*/*supra* are out of scope for the API. Text over 60,000 characters is sent in parts. Built from the published API reference; **no live call has been made with a token**, so treat the first real run as the test.
+
+## Review, the loop, the command line
+
+- **`@extrafemi-ai/assay/review`** turns any report into one self-contained HTML page for the person who decides: worst first, plain-words messages, no scripts, a policy that forbids requests, everything escaped. `renderReview([sections.quotes(report), sections.figures(report2)], { title })`.
+- **`@extrafemi-ai/assay/loop`** (`improve`): when something fails, ask the model again with what was wrong, check again, a bounded number of times. Assay keeps no model in it: you pass `regenerate`, and the loop stops at `maxRewrites` (default 2), on an empty or unchanged answer, or when the model errors, and never claims success it has not checked. With Lodestone: `regenerate: (feedback, text) => ai.complete({ system, messages: [{ role: 'user', content: `${text}\n\n${feedback}` }] }).then((r) => r.text)`.
+- **`assay` on the command line** (`npx @extrafemi-ai/assay quotes --source posting.txt --quote "…"`): quotes, figures, grounding, citations, retractions and links on files. Exit code 0 = nothing failed, 1 = something failed, 2 = could not run; `--json` for the report, `--html page.html` for the review page.
+- **A GitHub Action** (`action.yml`): `uses: obasaolorunfemi-ai/assay@v0.4.0` with `command` and `args`, so a pull request that adds an unsupported figure fails its check.
+
+## More sources
+
+Opt in with `sources`: `createAssay({ sources: [...defaultSources, pubmed] })` adds PubMed (biomedical literature; free, verified live), and `semanticscholar` adds Semantic Scholar (free; pass `keys: { semanticscholar }` for a key; built from the API reference, **not verified live**: its shared pool answered 429 whenever tried). For values, `createValues({ sources: [...defaultValueSources, eurostat] })` adds Eurostat for the EU, Iceland, Norway and Switzerland (unemployment, HICP inflation, GDP, population; verified live).
 
 ## What it cannot do
 

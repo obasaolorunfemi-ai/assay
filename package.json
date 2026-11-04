@@ -1,6 +1,6 @@
 {
   "name": "@extrafemi-ai/assay",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Checks AI-written text against evidence: citations against CrossRef, OpenAlex and the DOI registries; quotes against their source text; figures against the materials you supplied. Each check says what it checked against, in plain words.",
   "license": "MIT",
   "repository": {
@@ -44,10 +44,33 @@
       "browser": null,
       "types": "./dist/liveness.d.ts",
       "import": "./dist/liveness.js"
+    },
+    "./support": {
+      "types": "./dist/support.d.ts",
+      "import": "./dist/support.js"
+    },
+    "./retractions": {
+      "types": "./dist/retractions.d.ts",
+      "import": "./dist/retractions.js"
+    },
+    "./review": {
+      "types": "./dist/review.d.ts",
+      "import": "./dist/review.js"
+    },
+    "./loop": {
+      "types": "./dist/loop.d.ts",
+      "import": "./dist/loop.js"
+    },
+    "./legal": {
+      "browser": null,
+      "types": "./dist/legal.d.ts",
+      "import": "./dist/legal.js"
     }
   },
   "files": [
     "dist",
+    "action.yml",
+    "bin",
     "README.md",
     "CHANGELOG.md",
     "SECURITY.md",
@@ -63,7 +86,9 @@
     "test": "vitest run",
     "corpus": "npm run build && node scripts/corpus.mjs",
     "prepublishOnly": "npm run typecheck && npm test && npm run smoke",
-    "smoke": "npm run build && node scripts/smoke.mjs"
+    "smoke": "npm run build && node scripts/smoke.mjs",
+    "benchmark:template": "node scripts/benchmark-template.mjs",
+    "benchmark:agreement": "node scripts/agreement.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
@@ -90,5 +115,8 @@
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "bin": {
+    "assay": "./bin/assay.mjs"
   }
 }

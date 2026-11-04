@@ -1,7 +1,9 @@
 /** One way to ask the network, with a time limit. A failure is a value, never a throw: a source that cannot be reached is "not available", not "not found". */
 export interface HttpResult { ok: boolean; status: number; body: unknown; /** What the source asked for with Retry-After, in ms. */ retryAfterMs?: number; /** True when the request itself failed (offline, timed out), as opposed to the source answering with an error. */ networkError?: boolean }
+/** Extra things a few sources need: a header (an API key), or a POST. Most sources need none. */
+export interface HttpInit { method?: 'GET' | 'POST'; headers?: Record<string, string>; body?: string }
 export interface Http {
-  json(url: string): Promise<HttpResult>;
+  json(url: string, init?: HttpInit): Promise<HttpResult>;
 }
 
 /** Retry-After is seconds, or a date. */
@@ -27,19 +29,20 @@ export function makeHttp(opts: { fetch?: typeof fetch; timeoutMs?: number; concu
   const acquire = () => new Promise<void>((go) => { if (running < limit) { running++; go(); } else waiting.push(() => { running++; go(); }); });
   const release = () => { running--; waiting.shift()?.(); };
   return {
-    async json(url) {
+    async json(url, init) {
       await acquire();
       try {
         await pace();
         // One polite retry when a source says "slow down" (429) or is briefly busy (503): these free services share their limits.
-        let res = await f(url, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: 'application/json' } });
+        const req = () => ({ signal: AbortSignal.timeout(timeoutMs), method: init?.method ?? 'GET', headers: { accept: 'application/json', ...(init?.headers ?? {}) }, ...(init?.body !== undefined ? { body: init.body } : {}) });
+        let res = await f(url, req());
         // Only a SHORT wait is worth retrying inside this call. A source that says "come back in two minutes" (or twenty hours) is believed:
         // the failure is returned at once with that wait, and the health book leaves the source alone until then.
         const asked = res.status === 429 || res.status === 503 ? parseRetryAfter(res.headers?.get?.('retry-after')) : undefined;
         if ((res.status === 429 || res.status === 503) && (asked === undefined || asked <= 3000)) {
           await new Promise((go) => setTimeout(go, asked ?? retryDelay));
           await pace();
-          res = await f(url, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: 'application/json' } });
+          res = await f(url, req());
         }
         let body: unknown = null;
         try { body = await res.json(); } catch { /* a non-JSON body (an error page) */ }

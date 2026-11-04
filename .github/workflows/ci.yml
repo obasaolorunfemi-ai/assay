@@ -26,3 +26,5 @@ jobs:
       - run: npm run build
       - name: Every entry point loads from the built package
         run: node scripts/smoke.mjs
+      - name: The command line runs
+        run: node bin/assay.mjs --version && printf 'a real sentence in the source text' > /tmp/s.txt && node bin/assay.mjs quotes --source /tmp/s.txt --quote 'a real sentence in the source'
