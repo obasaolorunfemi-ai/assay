@@ -4,6 +4,8 @@ export interface HttpResult { ok: boolean; status: number; body: unknown; /** Wh
 export interface HttpInit { method?: 'GET' | 'POST'; headers?: Record<string, string>; body?: string }
 export interface Http {
   json(url: string, init?: HttpInit): Promise<HttpResult>;
+  /** The reply as text, for the few sources that answer in CSV. `body` is a string, or null when it was not readable or was over 5 MB. Optional so a hand-made `Http` in a test need not provide it. */
+  text?(url: string, init?: HttpInit): Promise<HttpResult>;
 }
 
 /** Retry-After is seconds, or a date. */
@@ -29,12 +31,16 @@ export function makeHttp(opts: { fetch?: typeof fetch; timeoutMs?: number; concu
   const acquire = () => new Promise<void>((go) => { if (running < limit) { running++; go(); } else waiting.push(() => { running++; go(); }); });
   const release = () => { running--; waiting.shift()?.(); };
   return {
-    async json(url, init) {
+    json: (url, init) => request(url, init, 'json'),
+    text: (url, init) => request(url, init, 'text'),
+  };
+  async function request(url: string, init: HttpInit | undefined, kind: 'json' | 'text'): Promise<HttpResult> {
+    {
       await acquire();
       try {
         await pace();
         // One polite retry when a source says "slow down" (429) or is briefly busy (503): these free services share their limits.
-        const req = () => ({ signal: AbortSignal.timeout(timeoutMs), method: init?.method ?? 'GET', headers: { accept: 'application/json', ...(init?.headers ?? {}) }, ...(init?.body !== undefined ? { body: init.body } : {}) });
+        const req = () => ({ signal: AbortSignal.timeout(timeoutMs), method: init?.method ?? 'GET', headers: { accept: kind === 'json' ? 'application/json' : 'text/csv, text/plain;q=0.9, */*;q=0.5', ...(init?.headers ?? {}) }, ...(init?.body !== undefined ? { body: init.body } : {}) });
         let res = await f(url, req());
         // Only a SHORT wait is worth retrying inside this call. A source that says "come back in two minutes" (or twenty hours) is believed:
         // the failure is returned at once with that wait, and the health book leaves the source alone until then.
@@ -45,12 +51,15 @@ export function makeHttp(opts: { fetch?: typeof fetch; timeoutMs?: number; concu
           res = await f(url, req());
         }
         let body: unknown = null;
-        try { body = await res.json(); } catch { /* a non-JSON body (an error page) */ }
+        try {
+          if (kind === 'json') body = await res.json();
+          else { const t = await res.text(); body = t.length <= 5_000_000 ? t : null; }
+        } catch { /* a body that is not what was asked for (an error page) */ }
         const retryAfterMs = res.ok ? undefined : parseRetryAfter(res.headers?.get?.('retry-after'));
         return { ok: res.ok, status: res.status, body, ...(retryAfterMs !== undefined ? { retryAfterMs } : {}) };
       } catch {
         return { ok: false, status: 0, body: null, networkError: true };
       } finally { release(); }
-    },
-  };
+    }
+  }
 }

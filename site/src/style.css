@@ -377,3 +377,48 @@ blockquote.cite { margin: 1rem 0 1.4rem; padding: .9rem 1.2rem; border-left: 4px
 
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 #counter table td:nth-child(n+3), #counter table th:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---- the counter: one number you can read at a glance, three smaller ones beside it, a bar, and the detail folded away ---- */
+.count-head { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.2rem; margin-bottom: 1.2rem; }
+.count-head h2 { margin: 0 !important; }
+.live-pill { display: inline-flex; align-items: center; gap: .45rem; margin: 0; padding: .15rem .7rem; border-radius: 999px; background: var(--ac-wash); color: var(--ac); font-size: .82rem; font-weight: 600; }
+.live-pill .dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--ac); animation: pulse 2s ease-in-out infinite; }
+.live-pill.off { background: var(--warn-wash); color: var(--warn); }
+.live-pill.off .dot { background: var(--warn); animation: none; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .live-pill .dot { animation: none; } }
+.count-panel { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: clamp(1rem, 3vw, 3rem); align-items: center; border: 1px solid var(--rule); border-radius: 22px; background: var(--surface); padding: clamp(1.2rem, 3vw, 2.4rem); }
+.count-main { display: flex; flex-direction: column; gap: .5rem; }
+.count-num { font: 500 clamp(4.2rem, 2.6rem + 8vw, 9rem)/.9 var(--f-display); color: var(--ac); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.count-cap { font-size: clamp(1rem, .95rem + .3vw, 1.2rem); color: var(--ink-2); max-width: 22rem; }
+.count-side { margin: 0; display: grid; gap: .2rem; }
+.count-side > div { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: .7rem 0; border-bottom: 1px solid var(--rule-soft); }
+.count-side > div:last-child { border-bottom: 0; }
+.count-side dt { color: var(--ink-2); font-size: .98rem; }
+.count-side dd { margin: 0; font: 500 clamp(1.5rem, 1.2rem + 1vw, 2.1rem)/1 var(--f-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.count-bar { grid-column: 1 / -1; width: 100%; height: .9rem; border-radius: 999px; overflow: hidden; background: var(--rule); display: block; }
+.count-bar .b-ok { fill: var(--good); } .count-bar .b-check { fill: var(--warn); } .count-bar .b-failed { fill: var(--bad); }
+.count-key { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; margin: -.4rem 0 0; font-size: .85rem; color: var(--ink-3); }
+.count-key span { display: inline-flex; align-items: center; gap: .4rem; }
+.count-key i { width: .7rem; height: .7rem; border-radius: 50%; display: inline-block; }
+.count-key .k-ok { background: var(--good); } .count-key .k-check { background: var(--warn); } .count-key .k-failed { background: var(--bad); }
+.count-more { margin-top: 1rem; border-top: 1px solid var(--rule-soft); }
+.count-more summary { cursor: pointer; font-weight: 600; color: var(--ac); min-height: 2.9rem; display: flex; align-items: center; }
+.count-more h3 { font-size: 1.2rem; margin: 1.4rem 0 .5rem; }
+.count-more > .small { max-width: 70rem; }
+@media (max-width: 48rem) { .count-panel { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---- the footer, laid out like Lodestone's: the name and a line about it, then the links in columns, then the small print ---- */
+.site-foot { background: var(--panel); border-top: 1px solid var(--rule); margin-top: clamp(2.5rem, 8vh, 6rem); padding: 0; }
+.foot-cols { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 2rem clamp(1.2rem, 3vw, 3rem); padding-block: 2.5rem; }
+.foot-cols .mark { font: 700 clamp(1.8rem, 1.5rem + 1vw, 2.3rem)/1 var(--f-display); letter-spacing: -.02em; margin-bottom: .7rem; }
+.foot-cols p { color: var(--ink-2); font-size: .95rem; max-width: 30em; margin: 0 0 .6rem; }
+.foot-cols h3 { font: 500 .72rem/1.4 var(--f-body); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 .5rem; }
+.foot-cols ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.foot-cols li a { display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--ink); text-decoration: none; }
+.foot-cols li a:hover { color: var(--ac); text-decoration: underline; }
+.foot-home { font-size: .9rem; }
+.foot-base { border-top: 1px solid var(--rule); padding-block: 1.4rem 2rem; display: grid; gap: .5rem; color: var(--ink-3); font-size: .86rem; }
+.foot-base p { max-width: 70em; margin: 0; }
+@media (max-width: 60rem) { .foot-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } .foot-cols > div:first-child { grid-column: 1 / -1; } }
+@media (max-width: 35rem) { .foot-cols { grid-template-columns: 1fr 1fr; } }

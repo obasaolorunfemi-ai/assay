@@ -13,7 +13,7 @@ entry point, and you use only the ones your scenario needs.
 | **gate** | a policy about sources: is each claim sourced well enough to be stated? | **no** | `@extrafemi-ai/assay/gate` |
 | **grounding** | a list of approved claims: does every figure in a draft trace to one, and match it? | **no** | `@extrafemi-ai/assay/grounding` |
 | **links** | the live web: is the page there? (server-side only) | yes | `@extrafemi-ai/assay/links` |
-| **values** | a source's own data (World Bank, IMF, or figures you seeded): does the number match, for that year? | yes | `@extrafemi-ai/assay/values` |
+| **values** | a source's own data (World Bank, IMF, Eurostat, Our World in Data, any statistics service you add, or figures you seeded): does the number match, for that year? | yes | `@extrafemi-ai/assay/values` |
 | **support** | a source text you supply: does it actually *back* this sentence? (you supply the model that judges; Assay verifies its evidence) | **no** (your judge may) | `@extrafemi-ai/assay/support` |
 | **retractions** | Crossref's notices, including Retraction Watch: has this paper been retracted? | yes | `@extrafemi-ai/assay/retractions` |
 | **legal** | CourtListener's database of US court decisions: are these case citations real, and is that the case named? (server-side, needs a free token) | yes | `@extrafemi-ai/assay/legal` |
@@ -139,7 +139,7 @@ So Assay is self-*regulating*, not self-*updating*. The safeguards stop a failin
 
 ### Adding your own source
 
-You can add a source; Assay will not add one to itself. A new source is a new thing whose answers are believed, and a library that adopted sources automatically could be pointed at a poisoned one, and would break its promise about which hosts it contacts. So adding one is a decision a person takes, in code or in data.
+You can add a source; Assay will not add one to itself. A new source is a new thing whose answers are believed, and a library that adopted sources automatically could be pointed at a poisoned one, and would break its promise about which hosts it contacts. So adding one is a decision a person takes, in code or in data. It can be a university repository, but just as well a central bank's data portal, a statistics office, a regulator's register, a company-filings API, a news API, or your own first-party records.
 
 **With data**, for any service that answers JSON over https (the description is checked when you make it; a reply of the wrong shape is an outage; a canary is required):
 
@@ -158,7 +158,9 @@ const myIndex = jsonSource({
 const assay = createAssay({ sources: [...defaultSources, myIndex], keys: { myrepo: process.env.REPO_KEY! } });
 ```
 
-**With code**, implement `SearchSource` (`{ name, canary, search(query, http, ctx) }`), or for numbers `ValueSource`, or `seededSource` for figures a person read off a primary publication. Add the source to your own scheduled check with `createAssay({ sources }).health()`: it will tell you when your source starts answering wrongly. To add a source to Assay itself, open a pull request with the source, a fixture recorded from the real service, a canary, and a note of whether it was verified live.
+**For numbers**, `jsonValueSource` does the same for a statistics service (the address takes `{geo}`, `{from}`, `{to}` and `{indicator}`; the figures are multiplied by `magnitude` so "in millions" compares as a full value).
+
+**With code**, implement `SearchSource` (`{ name, canary, search(query, http, ctx) }`), or for numbers `ValueSource`, or `seededSource` for figures a person read off a primary publication. Add the source to your own scheduled check with `createAssay({ sources }).health()`: it will tell you when your source starts answering wrongly. To add a source to Assay itself, open a pull request with the source, a fixture recorded from the real service, a self-test, and a note of whether it was verified live.
 
 ## Gate
 
@@ -209,8 +211,8 @@ It is strict on purpose: the **unit must match** (a GBP claim against a USD seri
 disagreement), the **exact period must exist** (a close number for a different year never counts: `period-unmatched` is a downgrade, not a pass), and **a model
 cannot produce "verified"**. States: `verified`, `mismatch`, `unit-mismatch`, `period-unmatched`, `no-data`, `no-source`, `unavailable`, `not-checkable`.
 
-Sources: `worldBank` and `imf` (free, no key; the IMF covers World Economic Outlook aggregates only), and `seededSource(entries)` for figures a *person* read off a primary
-publication (a central bank's report) where no API exists. Every seeded figure is reported as verified, so none should go in from memory or from a model.
+Sources: `worldBank` and `imf` (free, no key; the IMF covers World Economic Outlook aggregates only), `eurostat` and `ourWorldInData` (opt in), `jsonValueSource(spec)` for any statistics service that answers JSON over https (a central bank's data portal, a statistics office, a regulator), and `seededSource(entries)` for figures a *person* read off a primary
+publication (a central bank's bulletin, a statistics office's release) where no interface exists. Every seeded figure is reported as verified, so none should go in from memory or from a model.
 `reconcile(claim, series)` is the pure comparison, usable on its own. Add your own source with `{ name, fetch(claim, ctx) }`.
 
 `crossCheck` is an optional hook **you** supply (a model call, say; Assay makes none) for a claim no source covers. It can flag a mismatch (`cross-check-mismatch`).
@@ -394,7 +396,11 @@ What goes out is `{ "v": 1, "counts": { "citations": { "checked": 12, "ok": 10, 
 
 ## More sources
 
-Opt in with `sources`: `createAssay({ sources: [...defaultSources, pubmed] })` adds PubMed (biomedical literature; free, verified live), and `semanticscholar` adds Semantic Scholar (free; pass `keys: { semanticscholar }` for a key; built from the API reference, **not verified live**: its shared pool answered 429 whenever tried). For values, `createValues({ sources: [...defaultValueSources, eurostat] })` adds Eurostat for the EU, Iceland, Norway and Switzerland (unemployment, HICP inflation, GDP, population; verified live).
+Assay is not only for academic work. The checks behind it came from tools that lean on central-bank bulletins, statistics offices, regulatory filings, industry analysts and the financial press as much as on papers. A source can be anything a person could open and read, and there are three ways in, depending on what the source offers:
+
+- **It has an open interface:** opt in to a built-in one. For citations: `createAssay({ sources: [...defaultSources, pubmed] })` adds PubMed (verified live), and `semanticscholar` adds Semantic Scholar (built from the API reference, **not verified live**: its shared pool answered 429 whenever tried). For values: `createValues({ sources: [...defaultValueSources, eurostat, ourWorldInData] })` adds Eurostat (the EU, Iceland, Norway and Switzerland; verified live) and [Our World in Data](https://ourworldindata.org/) (verified live). Our World in Data compiles statistics from the UN, the World Bank, national bodies and researchers; the verdict names the original source it cites, because it is the route, not the origin. Name any of its charts by its address slug in `claim.indicator` (`ourworldindata.org/grapher/<slug>`), and give the unit as OWID writes it ("years", or "percent" for a percentage).
+- **It has an interface Assay does not know:** describe it with data. `jsonSource` (citations) and `jsonValueSource` (statistics) take an https address with a fixed host, where the rows and fields are in the reply, and a required self-test, and refuse a description missing any of those.
+- **It has no interface** (a central bank's PDF bulletin, a regulator's register, a company filing, a news article): the evidence is the page, or a figure someone read off it. Check that the link is there and ranks with the gate against *your* list of bodies and outlets, or put the figure in `seededSource`. [`examples/gate-policy-markets-and-trade.mjs`](examples/gate-policy-markets-and-trade.mjs) is a ready-made policy for markets, energy, trade and food-security claims: UN agencies, central banks and regulators at tier 1, specialist analysts at tier 2, the financial press at tier 3, encyclopaedias and aggregators never alone.
 
 ## What it cannot do
 
