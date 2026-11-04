@@ -35,7 +35,12 @@ export interface SearchSource {
 
 const arr = (x: unknown): any[] => (Array.isArray(x) ? x : []);
 /** Titles from the indexes can carry markup and line breaks (CrossRef sends `<scp>AI</scp>` for small capitals). Compare the words, not the markup. */
-export const plainTitle = (s: unknown): string => String(s ?? '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+export const plainTitle = (s: unknown): string => {
+  // Strip until nothing changes, so "<scr<b>ipt>" cannot be rebuilt into a tag by one pass; this text is only compared, never put in a page, but a sanitiser should be right anyway.
+  let t = String(s ?? ''), prev: string;
+  do { prev = t; t = t.replace(/<[^<>]*>/g, ''); } while (t !== prev);
+  return t.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim();
+};
 const mail = (m: string) => (m ? `&mailto=${encodeURIComponent(m)}` : '');
 export const openalexKey = (keys: Record<string, string>) => (keys.openalex ? `&api_key=${encodeURIComponent(keys.openalex)}` : '');
 

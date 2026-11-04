@@ -95,6 +95,7 @@ describe('titles with markup', () => {
   it('plainTitle drops tags and line breaks', () => {
     expect(plainTitle('Hallucination\u2010Free? Assessing the Reliability of Leading\n   <scp>AI</scp>\n   Legal Research Tools')).toBe('Hallucination\u2010Free? Assessing the Reliability of Leading AI Legal Research Tools');
     expect(plainTitle(undefined)).toBe('');
+    expect(plainTitle('a <scr<b>ipt>x</scr</b>ipt> b')).not.toMatch(/[<>]/);
   });
   it('CrossRef titles are compared as words: the 2025 legal-research paper comes back with its markup removed', async () => {
     const h = http(() => ok({ message: { items: [{ title: ['Hallucination\u2010Free? Assessing the Reliability of Leading\n <scp>AI</scp>\n Legal Research Tools'], author: [{ family: 'Magesh' }], issued: { 'date-parts': [[2025]] }, DOI: '10.1111/jels.12413', type: 'journal-article', 'container-title': ['Journal of Empirical Legal Studies'] }] } }));
