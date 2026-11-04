@@ -11,12 +11,13 @@ entry point, and you use only the ones your scenario needs.
 | **quotes** | the source text you supply: is this sentence really in it? | **no** | `@extrafemi-ai/assay/quotes` |
 | **figures** | the materials you supply: does every number come from them? | **no** | `@extrafemi-ai/assay/figures` |
 | **gate** | a policy about sources: is each claim sourced well enough to be stated? | **no** | `@extrafemi-ai/assay/gate` |
+| **values** | a source's own data (World Bank, IMF, or figures you seeded): does the number match, for that year? | yes | `@extrafemi-ai/assay/values` |
 
 The ones that check against *your own material or policy* never touch the network, and a test enforces that, so they are safe to run on private text
 such as a CV. Only citations sends anything out (the author, title, year and link of each citation, never the surrounding text).
 All three report the same way: a verdict for each item with a plain-words `message`, a one-line `summary`, and `ok`.
 
-More checks are planned as separate modules (values against a source's data, grounding, link liveness). Each will say what it compares against.
+More checks are planned as separate modules (grounding, link liveness). Each will say what it compares against.
 
 ## Citations
 
@@ -143,6 +144,35 @@ it is never the source). Outcomes: `pass`, `hold` (only backing is news under 24
 wrong label does not dodge it) and what satisfies it, as "any of": `[{ atLeast: 1, tier: 1 }, { atLeast: 2, tier: 3 }]` is "one authority or two news
 sources", counted by *different sites*. Nobody can raise an unknown domain above tier 3 by saying so, including the claim's own author.
 A broken policy entry is dropped and reported in `gate.warnings` rather than taking the gate down. `summariseRecency()` lists sources older than two years.
+
+## Values
+
+A citation can be real and its link live, and the claim can still state the wrong year's figure. `values` asks the source's own data.
+
+```ts
+import { createValues } from '@extrafemi-ai/assay/values';
+
+const values = createValues({ mailto: 'you@example.org' });
+
+await values.check({ value: 19.5e9, unit: 'USD', period: 2023, geo: 'NGA', subject: 'remittances' });
+// { state: 'verified', message: 'Matches World Bank (BX.TRF.PWKR.CD.DT) for 2023: 19,549,549,365 (exact).', … }
+
+await values.checkText('Remittances reached $25 billion in 2023.', { url: 'https://api.worldbank.org/v2/country/NGA/indicator/BX.TRF.PWKR.CD.DT' });
+// one verdict per year the sentence names; ok: false, "the claim says 25,000,000,000; World Bank says 19,549,549,365 for 2023"
+```
+
+It is strict on purpose: the **unit must match** (a GBP claim against a USD series, or a count against a percentage, is a different measurement, not a
+disagreement), the **exact period must exist** (a close number for a different year never counts: `period-unmatched` is a downgrade, not a pass), and **a model
+cannot produce "verified"**. States: `verified`, `mismatch`, `unit-mismatch`, `period-unmatched`, `no-data`, `no-source`, `unavailable`, `not-checkable`.
+
+Sources: `worldBank` and `imf` (free, no key; the IMF covers World Economic Outlook aggregates only), and `seededSource(entries)` for figures a *person* read off a primary
+publication (a central bank's report) where no API exists. Every seeded figure is reported as verified, so none should go in from memory or from a model.
+`reconcile(claim, series)` is the pure comparison, usable on its own. Add your own source with `{ name, fetch(claim, ctx) }`.
+
+`crossCheck` is an optional hook **you** supply (a model call, say; Assay makes none) for a claim no source covers. It can flag a mismatch (`cross-check-mismatch`).
+At best it says `plausible`, which is a `check`, never verification. Values are self-healing like citations: a changed reply shape or an error body is `unavailable`, never "no
+data" or a mismatch; a throttled source is left alone and its `Retry-After` believed; an earlier series is served (`stale`) when the source is down; and a source's "mismatch"
+is held back unless it first returns a known figure correctly (`health()` reports this).
 
 ## Quotes
 

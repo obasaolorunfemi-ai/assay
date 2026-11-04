@@ -3,6 +3,7 @@ import * as root from '@extrafemi-ai/assay';
 import * as quotes from '@extrafemi-ai/assay/quotes';
 import * as figures from '@extrafemi-ai/assay/figures';
 import * as gate from '@extrafemi-ai/assay/gate';
+import * as values from '@extrafemi-ai/assay/values';
 
 const need = (cond, msg) => { if (!cond) { console.error('SMOKE FAILED:', msg); process.exit(1); } };
 
@@ -22,6 +23,10 @@ need(typeof gate.createGate === 'function' && typeof gate.summariseRecency === '
 const g = gate.createGate({ rules: [gate.rules.estimatesCausalLegalNeedSpecialist] });
 need(g.check([{ text: 'Delays cost traders an estimated $4m.', category: 'loss-estimate', sources: [{ url: 'https://reuters.com/x', date: '2020-01-01' }] }]).ok === false, 'gate drops an under-sourced estimate');
 need(g.check([{ text: 'A strike happened.', category: 'event', sources: [{ url: 'https://reuters.com/x', date: '2020-01-01' }] }]).ok === true, 'gate passes an ordinary event');
+need(typeof values.createValues === 'function' && typeof values.reconcile === 'function' && values.worldBank && values.imf && typeof values.seededSource === 'function', 'values exports');
+const rv = values.reconcile({ value: 19.5e9, unit: 'USD', period: 2023, geo: 'NGA' }, { source: 'World Bank', indicatorId: 'X', unit: 'USD', points: [{ year: 2023, value: 19_549_549_365 }] });
+need(rv.state === 'verified', 'reconcile verifies a matching figure');
+need(values.reconcile({ value: 19.5e9, unit: 'USD', period: 2024, geo: 'NGA' }, { source: 'World Bank', indicatorId: 'X', unit: 'USD', points: [{ year: 2023, value: 19_549_549_365 }] }).state === 'period-unmatched', 'reconcile will not compare another year');
 const a = root.createAssay();
 need(['check', 'verify', 'recheck', 'repair', 'health', 'parse'].every((k) => typeof a[k] === 'function'), 'Assay methods');
 

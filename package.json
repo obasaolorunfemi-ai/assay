@@ -31,6 +31,10 @@
     "./gate": {
       "types": "./dist/gate.d.ts",
       "import": "./dist/gate.js"
+    },
+    "./values": {
+      "types": "./dist/values.d.ts",
+      "import": "./dist/values.js"
     }
   },
   "files": [
