@@ -51,3 +51,14 @@ const wire = (ids, fn) => {
 wire(['t-quotes', 'q-source', 'q-quotes'], quotes);
 wire(['t-figures', 'f-draft', 'f-materials'], figures);
 wire(['t-grounding', 'g-claims', 'g-draft'], grounding);
+
+/* The picker: one check at a time. Without JavaScript every check is shown, so nothing is hidden from anyone who cannot use the menu. */
+(() => {
+  const pick = $('pick');
+  if (!pick) return;
+  const panels = [...document.querySelectorAll('.tool')];
+  const show = (id) => { panels.forEach((p) => { p.hidden = p.id !== id; }); if (pick.value !== id) pick.value = id; try { history.replaceState(null, '', '#' + id.slice(2)); } catch (e) { /* the address bar is optional */ } };
+  pick.addEventListener('change', () => show(pick.value));
+  const fromHash = 't-' + location.hash.slice(1);
+  show(panels.some((p) => p.id === fromHash) ? fromHash : pick.value);
+})();

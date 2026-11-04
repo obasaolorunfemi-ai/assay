@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Self-healing · Assay</title>
+<meta name="description" content="How Assay keeps checking when its free sources throttle, change shape or go down, without turning an outage into an accusation.">
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://assay.extrafemi.com/self-healing/">
+<meta property="og:type" content="website"><meta property="og:url" content="https://assay.extrafemi.com/self-healing/"><meta property="og:site_name" content="Assay">
+<meta property="og:title" content="Self-healing · Assay"><meta property="og:description" content="How Assay keeps checking when its free sources throttle, change shape or go down, without turning an outage into an accusation.">
+<meta name="twitter:card" content="summary"><meta name="twitter:title" content="Self-healing · Assay"><meta name="twitter:description" content="How Assay keeps checking when its free sources throttle, change shape or go down, without turning an outage into an accusation.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/newsreader-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/inter-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/style.css?v=3638f69d">
+<script src="/theme.js?v=3638f69d"></script>
+<script src="/menu.js?v=3638f69d" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="sitebar"><div class="col sitebar-in"><a class="brand" href="/">Assay</a><nav class="sections" id="sections" aria-label="Site"><a href="/cases/">Cases</a><a href="/try/">Try it</a><a href="/start/">Get started</a><a href="/evidence/">Evidence</a><a href="/checks/">Reference</a><a href="/paper/" aria-current="page">Paper</a><a href="https://github.com/obasaolorunfemi-ai/assay">GitHub</a><a href="https://www.npmjs.com/package/@extrafemi-ai/assay">npm</a></nav><button type="button" class="icon-btn" id="theme" aria-label="Switch to dark mode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button><button type="button" class="icon-btn menu-btn" id="menu" aria-expanded="false" aria-controls="sections" aria-label="Open menu"><svg class="i-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="i-close" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></header>
+<main class="col page" id="main"><p class="tag"><a href="/paper/">Technical paper</a> · how it keeps working</p><h1>Self-healing</h1><p class="lede">How the citation and value checks keep working when the free sources they rely on do not.</p><div class="prose"><p>The sources are free and shared, and they break: OpenAlex now gives each address a small daily budget, and a service can change what it sends without any error. None of that may turn into an accusation against a citation, and none of it should need a person to notice.</p>
+<ul><li><strong>A changed or broken reply is an outage, not &quot;no results&quot;.</strong> A reply that is not the shape the source normally sends (an HTML error page, a renamed field) makes the result <code>unavailable</code>.</li><li><strong>A source is tested before it is believed.</strong> Before anyone is told &quot;not found&quot;, each source that said so is asked for a work that certainly exists. A source that cannot find it is broken without an error, and its answer is discarded (<code>unavailable</code>, with the reason). A passed test is trusted for ten minutes, and citations checked at the same moment share one test.</li><li><strong>A failing source is left alone, then probed.</strong> Three failures in a row, or a <code>Retry-After</code>, and it is not asked for a while (never longer than 15 minutes, even if it asks for 20 hours); then one request is let through to see. Short waits are retried inside the call.</li><li><strong>An old answer beats &quot;could not tell&quot;.</strong> A conclusive result is kept for a week. If the sources are down when it expires, the earlier answer is returned marked <code>stale: true</code>, with a message saying so.</li><li><strong><code>recheck(report)</code></strong> checks again only what could not be settled (<code>retryable</code>), once the sources are back.</li><li><strong><code>repair(text, report)</code></strong> fixes what needs no guessing: a real paper with an invented DOI gets the DOI of the record it matched, but only after that new link is looked up and found to be the paper. It returns the new text and a list of every change. Everything else is left to you.</li><li><strong><code>health()</code></strong> asks each source for its known work and says which are <code>healthy</code>, <code>degraded</code> (answering, but wrongly) or <code>down</code> (and when it will be tried again).</li></ul>
+<p>What is remembered is about the citation <em>and its link</em>: a paper first cited with a good DOI never makes a later invented DOI pass.</p>
+<h3 id="what-regulates-itself-and-what-does-not">What regulates itself, and what does not</h3>
+<p>The safeguards above react while Assay runs. Be clear about what that is:</p>
+<div class="table-wrap"><table><thead><tr><th></th><th>Does it happen by itself?</th></tr></thead><tbody><tr><td>Leaving a failing or throttled source alone, then probing it</td><td><strong>Yes</strong>, at run time (the breaker)</td></tr><tr><td>Refusing to accuse when a source gives a changed or unreadable reply</td><td><strong>Yes</strong> (shape check)</td></tr><tr><td>Refusing to believe &quot;not found&quot; from a source that cannot find a known work</td><td><strong>Yes</strong> (self-test with a canary)</td></tr><tr><td>Serving an earlier answer, marked stale, when sources are down</td><td><strong>Yes</strong></td></tr><tr><td>Noticing that a source has <em>permanently</em> changed (a renamed field, a retired canary work)</td><td><strong>No</strong>, not by the running library. <code>assay health</code> asks every built-in source for a known work and reports <code>degraded</code> when one answers wrongly; the repository runs it weekly (<code>.github/workflows/sources-health.yml</code>) and opens an issue. A person then fixes the source.</td></tr><tr><td>Adapting to a changed reply</td><td><strong>No.</strong> Detecting a change and fixing for it are different things; Assay does the first.</td></tr><tr><td>Finding and adopting new sources, or changing which services it calls</td><td><strong>No, deliberately.</strong> See below.</td></tr></tbody></table></div>
+<p>So Assay is self-<em>regulating</em>, not self-<em>updating</em>. The safeguards stop a failing source from causing a wrong verdict; keeping the sources themselves current is maintenance, and the weekly check is what tells the maintainers when it is due.</p>
+<h3 id="adding-your-own-source">Adding your own source</h3>
+<p>You can add a source; Assay will not add one to itself. A new source is a new thing whose answers are believed, and a library that adopted sources automatically could be pointed at a poisoned one, and would break its promise about which hosts it contacts. So adding one is a decision a person takes, in code or in data.</p>
+<p><strong>With data</strong>, for any service that answers JSON over https (the description is checked when you make it; a reply of the wrong shape is an outage; a canary is required):</p>
+<pre><code>import { createAssay, defaultSources, jsonSource } from '@extrafemi-ai/assay';
+
+const myIndex = jsonSource({
+  name: 'My Institution Repository',
+  url: 'https://repo.example.org/api/search?title={title}&amp;author={surname}',
+  headers: { 'x-api-key': 'key:myrepo' },                       // 'key:NAME' is read from keys.NAME below
+  results: 'data.items',                                        // where the array of records is in the reply
+  fields: { title: 'name', authors: 'writers', year: 'meta.year', doi: 'ids.doi' },
+  authorName: 'fullName',                                       // authors are objects: where the name is inside each
+  canary: { title: 'A work this repository certainly holds', surname: 'Surname', authors: ['Surname'] },
+});
+const assay = createAssay({ sources: [...defaultSources, myIndex], keys: { myrepo: process.env.REPO_KEY! } });</code></pre>
+<p><strong>With code</strong>, implement <code>SearchSource</code> (<code>{ name, canary, search(query, http, ctx) }</code>), or for numbers <code>ValueSource</code>, or <code>seededSource</code> for figures a person read off a primary publication. Add the source to your own scheduled check with <code>createAssay({ sources }).health()</code>: it will tell you when your source starts answering wrongly. To add a source to Assay itself, open a pull request with the source, a fixture recorded from the real service, a canary, and a note of whether it was verified live.</p></div></main>
+<footer class="site-foot"><div class="col"><div class="foot-grid">
+<div><h2>Use it</h2><ul><li><a href="/cases/">When AI made things up</a></li><li><a href="/try/">Try it in your browser</a></li><li><a href="/start/">Get started</a></li><li><a href="/checks/">Reference</a></li></ul></div>
+<div><h2>Trust</h2><ul><li><a href="/evidence/">What counts as evidence</a></li><li><a href="/paper/">Technical paper</a></li><li><a href="/limits/">Limits</a></li><li><a href="/self-healing/">Self-healing</a></li><li><a href="/security/">Security</a></li><li><a href="/disclaimer/">Disclaimer</a></li><li><a href="/changelog/">Changelog</a></li></ul></div>
+<div><h2>Project</h2><ul><li><a href="https://github.com/obasaolorunfemi-ai/assay">GitHub</a></li><li><a href="https://www.npmjs.com/package/@extrafemi-ai/assay">npm</a></li><li><a href="https://labs.extrafemi.com">Extrafemi Labs</a></li><li><a href="https://lodestone.extrafemi.com">Lodestone</a>, its sibling</li></ul></div>
+</div><p class="foot-note">Assay 0.4.0, free and open source (MIT). A project of <a href="https://labs.extrafemi.com">Extrafemi Labs</a>. Lodestone keeps the AI call working; Assay checks what came back. The examples on this site are produced by running the library when the site is built. Results can be wrong: <a href="/disclaimer/">read the disclaimer</a>.</p></div></footer>
+</body>
+</html>

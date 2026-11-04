@@ -30,3 +30,6 @@ jobs:
         run: node bin/assay.mjs --version && printf 'a real sentence in the source text' > /tmp/s.txt && node bin/assay.mjs quotes --source /tmp/s.txt --quote 'a real sentence in the source'
       - name: The site builds from the real code (its examples assert what the page says)
         run: node site/build.mjs
+      - name: The committed site is the one the build produces (Cloudflare serves site/public as it is, with no build step)
+        if: matrix.node == 22
+        run: git diff --exit-code -- site/public && test -z "$(git status --porcelain -- site/public)"

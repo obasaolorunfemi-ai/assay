@@ -2,11 +2,21 @@
 
 **Authors:** Obasa Olorunfemi, MBA; Precious Olusegun, PhD
 
-*Technical report, version 1.0 (draft for author review), November 2026. It describes Assay 0.3.0 and, where marked, the 0.4.0 additions that were in review when it was written. Affiliations and author contributions are to be completed by the authors.*
+**Affiliation:** Extrafemi Research
+
+*Technical report, version 1.0 (draft for author review), November 2026. It describes Assay 0.3.0 and, where marked, the 0.4.0 additions that were in review when it was written. Author contributions and funding are to be completed by the authors.*
 
 ## Abstract
 
-**Background.** Large language models write fluent text that is sometimes wrong in ways a reader cannot see: citations to papers that do not exist, quotations that are not in the document they are attributed to, and figures that nobody supplied. These failures have caused documented harm, including sanctions against lawyers and a partial refund of a government consultancy fee. **Problem.** The literature offers general hallucination detectors and benchmark metrics, but practitioners who publish model-written text need something narrower: deterministic, explainable checks that compare a specific piece of text with a specific kind of evidence, and that fail safe when the evidence source is unavailable. **Approach.** We present Assay, a dependency-free library of separate checks, each defined by the single thing it compares text with: public bibliographic records (citations), a source text (quotes), supplied materials (figures), a source-quality policy (gate), a list of approved claims (grounding), a statistical source's own data (values), and the live web (links). Every check reports in one shape, states what it compared against, and distinguishes "not found" from "could not look". The checks that use the network are self-healing: a changed, throttled or unavailable source can only produce an inconclusive result, never an accusation. The one component that fetches addresses it did not choose is hardened against server-side request forgery, DNS rebinding and algorithmic-complexity attacks. **Results.** On a hand-labelled sample of 30 citations written by free models, Assay agreed with the labels on 28 or 29 items when its sources were healthy; the sample is too small to support an accuracy claim, and we give a protocol for building one that is. The security properties are checked by differential tests, regression tests over awkward inputs, and by deliberately breaking each safeguard to confirm that a test fails. **Conclusion.** Existence checks are not entailment checks: Assay shows that a source exists, not that it says what a sentence claims. We therefore describe an extension that asks a caller-supplied model for evidence and counts only evidence that is verifiably in the source, and we state the limits that remain.
+**Background.** Large language models write fluent text that is sometimes wrong in ways a reader cannot see: citations to papers that do not exist, quotations that are not in the document they are attributed to, and figures that nobody supplied. These failures have caused documented harm, including sanctions against lawyers and a partial refund of a government consultancy fee.
+
+**Problem.** The literature offers general hallucination detectors and benchmark metrics, but practitioners who publish model-written text need something narrower: deterministic, explainable checks that compare a specific piece of text with a specific kind of evidence, and that fail safe when the evidence source is unavailable.
+
+**Approach.** We present Assay, a dependency-free library of separate checks, each defined by the single thing it compares text with: public bibliographic records (citations), a source text (quotes), supplied materials (figures), a source-quality policy (gate), a list of approved claims (grounding), a statistical source's own data (values), and the live web (links). Every check reports in one shape, states what it compared against (with a published definition of what counts as evidence and from which sources), and distinguishes "not found" from "could not look". The checks that use the network are self-healing: a changed, throttled or unavailable source can only produce an inconclusive result, never an accusation. The one component that fetches addresses it did not choose is hardened against server-side request forgery, DNS rebinding and algorithmic-complexity attacks.
+
+**Results.** On a hand-labelled sample of 30 citations written by free models, Assay agreed with the labels on 28 or 29 items when its sources were healthy; the sample is too small to support an accuracy claim, and we give a protocol for building one that is. The security properties are checked by differential tests, regression tests over awkward inputs, and by deliberately breaking each safeguard to confirm that a test fails.
+
+**Conclusion.** Existence checks are not entailment checks: Assay shows that a source exists, not that it says what a sentence claims. We therefore describe an extension that asks a caller-supplied model for evidence and counts only evidence that is verifiably in the source, and we state the limits that remain.
 
 **Keywords:** hallucination, citation verification, attribution, fact-checking, retrieval, reliability engineering, server-side request forgery, research integrity
 
@@ -78,6 +88,29 @@ Assay checks the *existence and traceability* of what text relies on. It does no
 
 **P7. A model may contradict but never verify.** Where a model is involved, it can lower trust but cannot raise it: a model's agreement is not evidence, whereas evidence it points to can be checked deterministically (Section 4.8).
 
+**P8. Say what counts as evidence, and why.** Every verdict is only as good as the thing it was compared with, so the comparison is defined in advance and published (Section 3.1) rather than left implicit in the code.
+
+### 3.1 What counts as evidence
+
+Assay uses *evidence* in a narrow, operational sense. A thing is evidence if all four conditions hold: (i) it is a record or a text that a person could open and read; (ii) it comes from a source named in the documentation, whose coverage and limits are stated; (iii) it was obtained, or supplied by the user, at the time of the check; and (iv) it can be compared with the text mechanically, so that two people running the check obtain the same result. The first condition is what makes a verdict contestable: anyone who disagrees can open the same record. The second makes the limits of a "found" or "not found" knowable. The third prevents a stale or remembered answer from standing in for a fresh one, except where it is explicitly marked stale (Section 5). The fourth separates a check from an opinion.
+
+By this definition the following do *not* count as evidence, and no check treats them as such: a model's statement that a source exists or says something; a model-written tag such as `[[c3]]` before it has been checked against the approved claims; a search engine's snippet; the existence of a link elsewhere in the same text; and the fact that a web page loads (which is evidence of liveness only, and is reported as such). A model's judgement that a source supports a sentence is not evidence either: only a quotation it points to can be, and only once that quotation has been found in the source by the quotes check (Section 4.8). Table 2 states, for each check, what counts, what does not, why, and from which sources.
+
+| Check | Counts as evidence | Does not count | Sources |
+|---|---|---|---|
+| citations | a bibliographic record with matching authors, title and year; a registry entry for the DOI given | a model's say-so; a record that matches only the title | CrossRef, OpenAlex, Open Library, PubMed (opt-in), Semantic Scholar (opt-in), the DOI registries |
+| quotes | the sentence occurring in the supplied source text | a paraphrase; a quotation under twelve characters | the user's source text |
+| figures | the same value occurring in the supplied materials | the same digits with a different unit or kind (40% against 40) | the user's materials |
+| gate | a source whose domain is in the user's tier policy at the required tier, counted over distinct sites | a source's own claim about its standing; an unlisted domain above tier 3 | the user's policy |
+| grounding | an approved claim that exists, with a matching figure | a tag that names no approved claim; reasoning (`[[logic]]`) offered for a number | the user's approved claims |
+| values | a published series for the exact period and unit | a nearby year; a different unit; a model's figure | World Bank, IMF, Eurostat (opt-in), figures a person seeded |
+| links | an HTTP response from the page | a blocked or unreachable response treated as absence | the live web |
+| support | a quotation, given by a judge, that is found in the supplied source | the judge's verdict alone | the user's source text |
+| retractions | a retraction, withdrawal, correction or concern notice for the DOI | an absence of notice read as proof of none | Crossref, including Retraction Watch |
+| legal | a decision held under the citation, with the case named | a citation not held (reported as not verified, not as invented) | CourtListener |
+
+*Table 2. What counts as evidence, for each check.*
+
 ## 4 The checks
 
 ### 4.1 Citations
@@ -123,6 +156,10 @@ Whether a page exists is the only claim the link checker makes. Statuses disting
 
 *Legal* checks US case citations against CourtListener's citation-lookup API. Besides existence, it detects a real citation attached to the wrong case, by comparing the case name written before the citation with the name CourtListener holds for it. A citation not found is reported as "not verified" because CourtListener does not hold every court's decisions. The API is documented to answer a well-formed citation absent from its database with status 404; it does not cover statutes, journals or *id.*/*supra* references (Free Law Project, 2024).
 
+### 4.9 Adding sources
+
+Because the evidence a verdict rests on is defined by its sources, adding a source is a decision about trust, and Assay leaves it to a person. A source is an object with a name, a self-test work (the *canary*) and a search function; a value source additionally supplies a series. Callers can supply their own, replace the defaults, or write one declaratively with `jsonSource`, which takes an https address with a fixed host, the location of the records and fields in the reply, and a required canary, and refuses a description that lacks any of these. A source added this way inherits the whole discipline of Section 5: its replies are shape-checked, its "not found" is not believed until it has passed its self-test, and a failing source is left alone. Assay deliberately does not discover or adopt sources itself. A library that adopted sources automatically could be directed at a poisoned one, would change which hosts it contacts without anyone deciding to, and would defeat the privacy statement of Section 6.4.
+
 ## 5 Self-healing
 
 ### 5.1 The problem
@@ -144,6 +181,12 @@ The mechanisms below exist to maintain I1; each has a test that fails when the m
 ### 5.3 A lesson from testing the safeguards
 
 A test of the shape guard continued to pass after the guard was deleted, because the canary test caught the same fault. The shape-guard tests now run with the self-test disabled, so each safeguard is tested alone. We report this because redundant safeguards mask each other in tests, and a suite that cannot distinguish them overstates its coverage.
+
+### 5.4 Self-regulating, not self-updating
+
+The mechanisms above are self-*regulating*: they act while Assay runs, without a person. They are not self-*updating*, and the distinction matters because Assay is only as trustworthy as these safeguards. Nothing in the running library notices that a source has permanently renamed a field, changed its ranking so that the canary work no longer appears, or retired the canary work altogether. In each case the library fails safe, since the shape guard or the self-test makes the source *degraded* and its answers are discarded, but it does not repair itself, and a source that stays degraded silently reduces coverage. Detecting a change and adapting to it are different problems and Assay solves only the first.
+
+The part that notices is outside the library. `assay health` asks every built-in source for a work it must know and reports *healthy*, *degraded* (it answers, but not with that work: a person must look) or *down* (unreachable or throttled, usually temporary). A scheduled workflow in the repository runs it weekly and opens an issue when a source is degraded; a down source is reported but does not fail the job, because several services throttle the shared addresses of the runners. This is monitoring, not repair, and it can fail in its own ways: a canary can be a poor probe (the work is found but the index ranks real queries differently), and a weekly interval means a change can go unnoticed for up to a week. Users who add their own sources can run the same `health()` call in their own schedule.
 
 ## 6 Security analysis
 
@@ -227,7 +270,7 @@ We have described Assay, a set of separate, individually usable checks that comp
 
 ## Declarations
 
-**Competing interests.** The software described is developed and maintained by the first author, and is released under the MIT licence. **Funding.** None is stated for this draft; the authors should complete this section. **Data and code availability.** Source code, tests, the labelled sample, the corpus runner and the benchmark instruments are in the project repository at https://github.com/obasaolorunfemi-ai/assay; the version described is the `v0.3.0` tag, and the 0.4.0 additions are in the repository's `feat/0.4-gaps` branch at the time of writing. **Use of AI tools.** Parts of the software and of this draft were produced with the assistance of an AI model, and every reference was verified against Crossref, arXiv, the RFC Editor or the publisher by the process described below. **Author contributions and affiliations.** To be completed by the authors.
+**Competing interests.** The software described is developed and maintained by the first author, and is released under the MIT licence. **Funding.** None is stated for this draft; the authors should complete this section. **Data and code availability.** Source code, tests, the labelled sample, the corpus runner and the benchmark instruments are in the project repository at https://github.com/obasaolorunfemi-ai/assay; the version described is the `v0.3.0` tag, and the 0.4.0 additions are in the repository's `feat/0.4-gaps` branch at the time of writing. **Use of AI tools.** Parts of the software and of this draft were produced with the assistance of an AI model, and every reference was verified against Crossref, arXiv, the RFC Editor or the publisher by the process described below. **Affiliation.** Both authors: Extrafemi Research. **Author contributions.** To be completed by the authors.
 
 ## References
 

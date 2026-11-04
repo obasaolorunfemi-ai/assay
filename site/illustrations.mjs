@@ -4,7 +4,7 @@
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const T = (x, y, t, cls = 'tx') => `<text class="${cls}" x="${x}" y="${y}">${esc(t)}</text>`;
 const svg = (label, body) => `<svg class="ill" viewBox="0 0 320 190" role="img" aria-label="${esc(label)}"><g aria-hidden="true">${body}</g></svg>`;
-const stamp = (t, x, y, w, text, ok) => `<g class="pop t${t}"><rect class="${ok ? 'okbg' : 'badbg'}" x="${x}" y="${y}" width="${w}" height="26" rx="13"/>${T(x + w / 2, y + 17.5, text, ok ? 'tx c oktx' : 'tx c badtx')}</g>`;
+const stamp = (t, x, y, w, text, ok) => { const k = ok === 'warn' ? ['warnbg', 'warntx'] : ok ? ['okbg', 'oktx'] : ['badbg', 'badtx']; return `<g class="pop t${t}"><rect class="${k[0]}" x="${x}" y="${y}" width="${w}" height="26" rx="13"/>${T(x + w / 2, y + 17.5, text, `tx c ${k[1]}`)}</g>`; };
 
 export const ILL = {
   citations: svg('A citation card is looked up in three public record collections, and a found stamp appears.', `
@@ -75,6 +75,39 @@ export const ILL = {
     <path class="shield pop t50" d="M184 108 l16 6 v16 c0 11 -8 18 -16 21 c-8 -3 -16 -10 -16 -21 v-16z"/>
     <rect class="pane2" x="226" y="106" width="82" height="40" rx="8"/>${T(267, 130, 'your network', 'tx s c')}
     ${stamp(60, 150, 154, 160, '✕ Refused, nothing sent', false)}`),
+  support: svg('A judge points at a sentence in the source to back a claim; Assay finds that exact sentence in the source and asks a person to confirm the reading.', `
+    <rect class="pane" x="12" y="14" width="170" height="162" rx="9"/>
+    ${[[140, 32], [128, 52], [146, 72], [100, 92], [136, 112], [120, 132], [84, 152]].map(([w, y]) => `<rect class="ln" x="26" y="${y}" width="${w}" height="7" rx="3.5"/>`).join('')}
+    <rect class="found pop t40" x="21" y="86" width="152" height="19" rx="5"/>
+    <rect class="chip" x="200" y="20" width="108" height="40" rx="9"/>${T(254, 37, 'Claim', 'tx s c')}${T(254, 52, 'in the draft', 'tx b c')}
+    <rect class="pane2 pop t12" x="200" y="74" width="108" height="42" rx="9"/>${T(254, 91, 'Judge: supports', 'tx s c pop t12')}${T(254, 105, 'quote: “…”', 'tx s c pop t12')}
+    <path class="draw t28 line" pathLength="1" d="M200 96 C 150 96 150 96 124 96"/>
+    ${stamp(56, 196, 130, 116, '≈ Person confirms', 'warn')}`),
+
+  retractions: svg('A cited paper is looked up in Crossref and in Retraction Watch notices, and a retracted stamp appears.', `
+    <rect class="pane" x="12" y="36" width="118" height="84" rx="9"/>
+    ${T(24, 58, 'A cited paper', 'tx b')}${[[90, 70], [78, 82], [86, 94]].map(([w, y]) => `<rect class="ln" x="24" y="${y}" width="${w}" height="6" rx="3"/>`).join('')}${T(24, 112, 'DOI 10.xxxx/…', 'tx s')}
+    <rect class="pane2" x="200" y="26" width="108" height="34" rx="8"/>${T(254, 47, 'Crossref', 'tx c')}
+    <rect class="pane2" x="200" y="76" width="108" height="34" rx="8"/>${T(254, 97, 'Retraction Watch', 'tx c')}
+    <path class="draw t8 line" pathLength="1" d="M130 70 C 164 70 164 43 200 43"/>
+    <path class="draw t18 line" pathLength="1" d="M130 86 C 164 86 164 93 200 93"/>
+    <g class="pop t34"><rect class="note" x="200" y="124" width="108" height="30" rx="8"/>${T(254, 143, 'notice on record', 'tx s c')}</g>
+    ${stamp(50, 22, 134, 100, '✕ Retracted', false)}`),
+
+  legal: svg('A case citation is looked up in CourtListener, which holds a different case under that citation, so it is marked as belonging to another case.', `
+    <rect class="pane" x="12" y="46" width="128" height="70" rx="9"/>
+    ${T(24, 70, 'Smith v. Jones', 'tx b')}${T(24, 88, '123 F.3d 456', 'tx s')}${T(24, 102, '(as written in the brief)', 'tx s')}
+    <rect class="pane2" x="196" y="22" width="112" height="34" rx="8"/>${T(252, 43, 'CourtListener', 'tx c')}
+    <path class="draw t8 line" pathLength="1" d="M140 76 C 170 76 170 39 196 39"/>
+    <path class="draw t24 line" pathLength="1" d="M252 56 L252 82"/>
+    <g class="pop t32"><rect class="chip" x="196" y="82" width="112" height="46" rx="9"/>${T(252, 100, 'holds under 123 F.3d 456:', 'tx s c')}${T(252, 117, 'Doe v. Roe', 'tx b c')}</g>
+    ${stamp(52, 14, 138, 150, '✕ A different case', false)}`),
+
+  none: svg('A claim with no source beside it: there is nothing to compare it with, so no check can say anything.', `
+    <rect class="chip" x="12" y="52" width="136" height="70" rx="9"/>${T(80, 74, 'Claim in the text', 'tx s c')}${T(80, 92, 'a statement about', 'tx b c')}${T(80, 106, 'the world', 'tx b c')}
+    <rect class="zone" x="190" y="52" width="118" height="70" rx="9"/>${T(249, 92, 'no source supplied', 'tx s c')}
+    <path class="draw t12 line bad" pathLength="1" d="M148 87 L190 87"/>
+    ${stamp(40, 56, 140, 200, '≈ Nothing to compare with', 'warn')}`),
 };
 
 /** Generated keyframes: one set per start time for the things that appear (pop) and the lines that draw. */
