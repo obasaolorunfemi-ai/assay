@@ -19,7 +19,11 @@ const SITE = 'https://assay.extrafemi.com';
 const GH = 'https://github.com/obasaolorunfemi-ai/assay';
 const NPM = 'https://www.npmjs.com/package/@extrafemi-ai/assay';
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const slug = (s) => s.toLowerCase().replace(/<[^>]*>/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+/** Text without tags, stripped until nothing changes so "<scr<b>ipt>" cannot be rebuilt into a tag by one pass. */
+const stripTags = (s) => { let t = String(s), prev; do { prev = t; t = t.replace(/<[^<>]*>/g, ''); } while (t !== prev); return t.replace(/[<>]/g, ''); };
+const slug = (s) => stripTags(s.toLowerCase()).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+/** A JavaScript string literal in single quotes, with backslashes and quotes escaped. */
+const jsq = (s) => `'${String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 
 /* ---------- the ten checks (what each compares with, and whether it touches the network) ---------- */
 const CHECKS = [
@@ -114,7 +118,7 @@ const EXAMPLES = [
   {
     name: 'Citations', against: 'public records of papers and books', sub: '.', net: true,
     what: 'The lookup needs the network, so this page does not run it. This is what is read from a tag before CrossRef, OpenAlex or the DOI registry is asked.',
-    code: `parseCitations('${tag.replace(/'/g, "\\'")}');`,
+    code: `parseCitations(${jsq(tag)});`,
     out: { cls: 'good', head: `${cites.length} citation read`, text: `Author ${cites[0].authors}, ${cites[0].year}, titled “${cites[0].title}”, in ${cites[0].venue}, with a ${cites[0].tier === 'link' ? 'link to check' : cites[0].tier}.`, cap: 'Then each source is asked for the work, and the verdict says what was found.' },
   },
 ];
@@ -266,7 +270,7 @@ ${foot}
 </html>
 `;
 }
-const tocOf = (html) => [...html.matchAll(/<h2 id="([^"]+)"[^>]*>(.*?)<\/h2>/g)].map((m) => [m[1], m[2].replace(/<[^>]*>/g, '')]);
+const tocOf = (html) => [...html.matchAll(/<h2 id="([^"]+)"[^>]*>(.*?)<\/h2>/g)].map((m) => [m[1], stripTags(m[2])]);
 const doc = (h1, lede, inner, kicker = '', byline = '', cls = '') => {
   const toc = tocOf(inner);
   const list = `<ol>${toc.map(([id, t]) => `<li><a href="#${id}">${t}</a></li>`).join('')}</ol>`;

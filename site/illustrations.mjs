@@ -1,7 +1,7 @@
 // One small animated scene for each check, drawn as inline SVG. The page's content-security policy allows no inline styles or scripts,
 // so every look and every movement is a class defined in style.css or in the generated animation sheet below (animCss).
 // Elements that appear in turn carry a start time as a class (t10 = 10% into the 9-second loop); the keyframes for each start time are generated.
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const T = (x, y, t, cls = 'tx') => `<text class="${cls}" x="${x}" y="${y}">${esc(t)}</text>`;
 const svg = (label, body) => `<svg class="ill" viewBox="0 0 320 190" role="img" aria-label="${esc(label)}"><g aria-hidden="true">${body}</g></svg>`;
 const stamp = (t, x, y, w, text, ok) => { const k = ok === 'warn' ? ['warnbg', 'warntx'] : ok ? ['okbg', 'oktx'] : ['badbg', 'badtx']; return `<g class="pop t${t}"><rect class="${k[0]}" x="${x}" y="${y}" width="${w}" height="26" rx="13"/>${T(x + w / 2, y + 17.5, text, `tx c ${k[1]}`)}</g>`; };
