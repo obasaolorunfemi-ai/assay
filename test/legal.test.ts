@@ -13,6 +13,12 @@ describe('case-name helpers', () => {
     const t = 'As held in Mata v. Avianca, Inc., 678 F. Supp. 3d 443';
     expect(caseNameBefore(t, t.indexOf('678'))).toMatch(/Mata v\. Avianca/);
     expect(caseNameBefore('no case name here 678 F. Supp.', 20)).toBe('');
+    // Found in the first live run: a sentence-opening signal word was read as part of the name.
+    const u = 'See Brown v. Board of Education, 347 U.S. 483 (1954). Also Roe v. Wade, 347 U.S. 483 (1954).';
+    expect(caseNameBefore(u, u.indexOf('347', 60))).toBe('Roe v. Wade');
+    expect(caseNameBefore(u, u.indexOf('347'))).toBe('Brown v. Board of Education');
+    const v = 'And Smith v. Imaginary Airlines, 999 F.3d 9999';
+    expect(caseNameBefore(v, v.indexOf('999'))).toBe('Smith v. Imaginary Airlines');
   });
   it('compares the significant words of two case names', () => {
     expect(sameCase('Varghese v. China Southern Airlines Co. Ltd.', 'Varghese v. China Southern Airlines')).toBe(true);

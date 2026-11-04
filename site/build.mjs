@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import { ILL, animCss } from './illustrations.mjs';
+import { emptyTotals, publicView } from '../worker/logic.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -32,7 +33,7 @@ const CHECKS = [
   ['Figures', 'the materials you supply: does every number come from them?', false, './figures'],
   ['Gate', 'a policy about sources: is each claim sourced well enough to be stated?', false, './gate'],
   ['Grounding', 'a list of approved claims: does every figure in a draft trace to one, and match it?', false, './grounding'],
-  ['Values', "a source's own data (World Bank, IMF, or figures you seeded): does the number match, for that year?", true, './values'],
+  ['Values', "a source's own data (World Bank, IMF, Eurostat, Our World in Data, any statistics service you add, or figures you seeded): does the number match, for that year?", true, './values'],
   ['Links', 'the live web: is the page there? (server-side only)', true, './links'],
   ['Support', 'a source text you supply: does it back the sentence? (a judge you supply proposes evidence; Assay verifies it)', false, './support'],
   ['Retractions', 'Crossref notices, including Retraction Watch: has the paper been retracted?', true, './retractions'],
@@ -226,18 +227,66 @@ const PAPER = ['heal', 'limits', 'security', 'changelog'];
 const THEME_BTN = '<button type="button" class="icon-btn" id="theme" aria-label="Switch to dark mode" title="Light or dark"><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.3M12 19.2v2.3M2.5 12h2.3M19.2 12h2.3M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg></button>';
 const MENU_BTN = '<button type="button" class="icon-btn menu-btn" id="menu" aria-expanded="false" aria-controls="sections" aria-label="Open menu"><svg class="i-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="i-close" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
 const sitebar = (key) => `<div class="col sitebar-in"><a class="brand" href="/">Assay</a><nav class="sections" id="sections" aria-label="Site">${NAV.map((k) => `<a href="${PAGES[k][0]}"${k === key || (k === 'paper' && PAPER.includes(key)) ? ' aria-current="page"' : ''}>${PAGES[k][1]}</a>`).join('')}<a href="${GH}">GitHub</a><a href="${NPM}">npm</a></nav>${THEME_BTN}${MENU_BTN}</div>`;
-const foot = `<footer class="site-foot"><div class="col"><div class="foot-grid">
-<div><h2>Use it</h2><ul><li><a href="/cases/">When AI made things up</a></li><li><a href="/try/">Try it in your browser</a></li><li><a href="/start/">Get started</a></li><li><a href="/checks/">Reference</a></li></ul></div>
-<div><h2>Trust</h2><ul><li><a href="/evidence/">What counts as evidence</a></li><li><a href="/paper/">Technical paper</a></li><li><a href="/limits/">Limits</a></li><li><a href="/self-healing/">Self-healing</a></li><li><a href="/security/">Security</a></li><li><a href="/disclaimer/">Disclaimer</a></li><li><a href="/changelog/">Changelog</a></li></ul></div>
-<div><h2>Project</h2><ul><li><a href="${GH}">GitHub</a></li><li><a href="${NPM}">npm</a></li><li><a href="https://labs.extrafemi.com">Extrafemi Labs</a></li><li><a href="https://lodestone.extrafemi.com">Lodestone</a>, its sibling</li></ul></div>
-</div><p class="foot-note">Assay ${esc(pkg.version)}, free and open source (MIT). A project of <a href="https://labs.extrafemi.com">Extrafemi Labs</a>. Lodestone keeps the AI call working; Assay checks what came back. The examples on this site are produced by running the library when the site is built. Results can be wrong: <a href="/disclaimer/">read the disclaimer</a>.</p></div></footer>`;
+const FOOT_GROUPS = [
+  ['Use it', [['/cases/', 'When AI made things up'], ['/try/', 'Try it in your browser'], ['/start/', 'Get started'], ['/checks/', 'Reference']]],
+  ['Trust', [['/evidence/', 'What counts as evidence'], ['/paper/', 'Technical paper'], ['/limits/', 'Limits'], ['/self-healing/', 'Self-healing'], ['/security/', 'Security'], ['/disclaimer/', 'Disclaimer']]],
+  ['Project', [['/changelog/', 'Changelog'], [GH, 'GitHub'], [NPM, 'npm'], ['https://labs.extrafemi.com/', 'Extrafemi Labs'], ['https://lodestone.extrafemi.com/', 'Lodestone']]],
+];
+const foot = `<footer class="site-foot">
+  <div class="col foot-cols">
+    <div><div class="mark">Assay</div><p>Checks AI-written text against evidence: citations, quotes, figures, statistics and sources, and says what it compared them against.</p><p class="foot-labs">Assay is an <a href="https://labs.extrafemi.com/">Extrafemi Labs</a> build.</p><p class="foot-home"><a href="/">Back to the home page</a></p></div>
+    ${FOOT_GROUPS.map(([title, links]) => `<nav aria-label="${title}"><h3>${title}</h3><ul>${links.map(([h, t]) => `<li><a href="${h}">${t}</a></li>`).join('')}</ul></nav>`).join('\n    ')}
+  </div>
+  <div class="col foot-base">
+    <p>Assay ${esc(pkg.version)} · MIT licence. Newsreader and Inter are set in the SIL Open Font Licence and are served from this site.</p>
+    <p>© 2026 Extrafemi Labs · No cookies, no tracking. Your light or dark choice, and the demo’s count of what it caught for you, are kept in your browser, nowhere else. Results can be wrong: <a href="/disclaimer/">read the disclaimer</a>.</p>
+  </div>
+</footer>`;
 
 const sums = createHash('sha256');
-for (const f of ['style.css', 'theme.js', 'menu.js', 'demo.js', 'anim.js']) sums.update(readFileSync(join(src, f)));
+for (const f of ['style.css', 'theme.js', 'menu.js', 'demo.js', 'anim.js', 'counter.js']) sums.update(readFileSync(join(src, f)));
 sums.update(animCss);
 const V8 = sums.digest('hex').slice(0, 8);
 
-function page({ path, key, title, desc, body, scripts = '', noindex = false, ld = '' }) {
+/* ---------- search and social: one place for each page's title and description, and the structured data derived from it ---------- */
+const SITE_UPDATED = JSON.parse(readFileSync(join(here, 'site.json'), 'utf8')).updated;   // bump when the content changes: it is the sitemap's lastmod
+const CARD = `${SITE}/assay-share-card-1200x630.png`;
+const SEO = {
+  '/': { title: 'Assay: catch fake citations, quotes and numbers in AI text', desc: 'Free, open-source checks for AI-written text: invented citations, quotes that are not in the source, and numbers nobody supplied. Runs in your browser.' },
+  '/cases/': { title: 'AI hallucination cases and what they cost · Assay', desc: 'Documented court, tribunal and report cases where AI made things up, with sourced costs and an honest verdict on whether Assay would have caught each.', crumb: 'Cases', type: 'CollectionPage' },
+  '/try/': { title: 'Try the checks in your browser · Assay', desc: 'Check a quote against its source, a draft’s numbers against your materials, or tagged lines against approved facts. Nothing leaves your browser.', crumb: 'Try it', type: 'WebPage' },
+  '/start/': { title: 'Get started with Assay: install and run a check', desc: 'Install @extrafemi-ai/assay and run the check that fits: citations, quotes, figures, sourcing or grounding. Short recipes for each, in TypeScript.', crumb: 'Get started', type: 'TechArticle' },
+  '/evidence/': { title: 'What counts as evidence: Assay’s sources and rules', desc: 'Exactly what Assay counts as evidence, why, and which sources it uses for each check, with every source’s self-test and limits, and how to add your own.', crumb: 'Evidence', type: 'TechArticle' },
+  '/checks/': { title: 'Assay reference: every check, option and message', desc: 'Reference for all ten Assay checks: citations, quotes, figures, gate, grounding, values, links, support, retractions and legal, with options and statuses.', crumb: 'Reference', type: 'TechArticle' },
+  '/paper/': { title: 'Technical paper: checking AI-written text against evidence', desc: 'Technical report by Obasa Olorunfemi and Precious Olusegun (Extrafemi Research): design, self-healing, security, evaluation and limits of Assay.', crumb: 'Paper', type: 'ScholarlyArticle' },
+  '/self-healing/': { title: 'How Assay keeps checking when its sources fail', desc: 'How Assay’s citation and value checks survive throttled, changed or unavailable sources without accusing real work: breakers, self-tests and stale answers.', crumb: 'Self-healing', type: 'TechArticle' },
+  '/limits/': { title: 'What Assay cannot do: limits and privacy · Assay', desc: 'Where Assay falls short: it shows a source exists, not that it says what a sentence claims. Coverage gaps, what it sends, and what it never sees.', crumb: 'Limits', type: 'TechArticle' },
+  '/security/': { title: 'Assay security: publishing, protections, link checker', desc: 'How Assay is published and protected, and the guarantees and limits of its link checker against server-side request forgery.', crumb: 'Security', type: 'TechArticle' },
+  '/changelog/': { title: 'Assay changelog: what changed in each release', desc: 'Release notes for Assay: new checks, fixes found by testing, the live counter, and every breaking change, from 0.3.0 onward.', crumb: 'Changelog', type: 'TechArticle' },
+  '/disclaimer/': { title: 'Disclaimer · Assay', desc: 'Limits of Assay and this site: not advice, results can be wrong, no warranty, third-party data, what is sent, and how to report a correction.', crumb: 'Disclaimer', type: 'WebPage' },
+};
+const ORG = { '@type': 'Organization', '@id': `${SITE}/#org`, name: 'Extrafemi Labs', url: 'https://labs.extrafemi.com', sameAs: [GH] };
+function ldFor(path, title, desc) {
+  const seo = SEO[path];
+  const graph = [];
+  if (path === '/') {
+    graph.push({ '@type': 'WebSite', '@id': `${SITE}/#site`, url: `${SITE}/`, name: 'Assay', description: desc, inLanguage: 'en', publisher: { '@id': `${SITE}/#org` } });
+    graph.push(ORG);
+    graph.push({ '@type': 'SoftwareApplication', '@id': `${SITE}/#app`, name: 'Assay', url: `${SITE}/`, description: pkg.description, applicationCategory: 'DeveloperApplication', operatingSystem: 'Any', softwareVersion: pkg.version, license: 'https://opensource.org/license/mit', downloadUrl: NPM, offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, author: { '@id': `${SITE}/#org` }, image: CARD });
+    graph.push({ '@type': 'SoftwareSourceCode', name: 'Assay', codeRepository: GH, programmingLanguage: 'TypeScript', license: 'https://opensource.org/license/mit', description: pkg.description });
+  } else if (seo) {
+    graph.push({ '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Assay', item: `${SITE}/` }, { '@type': 'ListItem', position: 2, name: seo.crumb, item: `${SITE}${path}` }] });
+    const page = { '@type': seo.type, '@id': `${SITE}${path}#page`, url: `${SITE}${path}`, name: title, description: desc, inLanguage: 'en', isPartOf: { '@id': `${SITE}/#site` }, publisher: { '@id': `${SITE}/#org` }, dateModified: SITE_UPDATED, image: CARD };
+    if (seo.type === 'ScholarlyArticle') Object.assign(page, { headline: paperTitle, author: [paperAuthors.split(';')[0], paperAuthors.split(';')[1]].map((a) => ({ '@type': 'Person', name: a.trim(), affiliation: { '@type': 'Organization', name: paperAffil } })), datePublished: '2026-11', license: 'https://opensource.org/license/mit', about: 'Checking AI-written text against evidence' });
+    if (seo.type === 'TechArticle') Object.assign(page, { headline: title, author: { '@id': `${SITE}/#org` } });
+    graph.push(page);
+  }
+  return graph.length ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replace(/</g, '\\u003c')}</script>\n` : '';
+}
+
+function page({ path, key, title: t0, desc: d0, body, scripts = '', noindex = false }) {
+  const title = SEO[path]?.title ?? t0, desc = SEO[path]?.desc ?? d0;
+  const ld = noindex ? '' : ldFor(path, title, desc);
   const url = `${SITE}${path === '404' ? '/' : path}`;
   return `<!doctype html>
 <html lang="en">
@@ -249,9 +298,11 @@ function page({ path, key, title, desc, body, scripts = '', noindex = false, ld 
 <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="${url}">
-<meta property="og:type" content="website"><meta property="og:url" content="${url}"><meta property="og:site_name" content="Assay">
+<meta property="og:type" content="${path === '/paper/' ? 'article' : 'website'}"><meta property="og:url" content="${url}"><meta property="og:site_name" content="Assay"><meta property="og:locale" content="en">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
-<meta name="twitter:card" content="summary"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(desc)}">
+<meta property="og:image" content="${CARD}"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Assay: catch what AI made up. Three verdicts: a quote nobody wrote, a number from nowhere, could not look so it says so.">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(desc)}"><meta name="twitter:image" content="${CARD}"><meta name="twitter:image:alt" content="Assay: catch what AI made up.">
+<meta name="author" content="Extrafemi Labs">
 <meta name="robots" content="${noindex ? 'noindex' : 'index,follow,max-image-preview:large'}">
 ${ld}<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/fonts/newsreader-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -291,17 +342,19 @@ const CHECK_CARDS = [
   ['figures', 'Figures', 'Did I make up a number?', 'It finds every number in the draft and checks that you supplied the same number in your own materials. “three” matches 3.', 'Stays on your device'],
   ['gate', 'Gate', 'Is this claim sourced well enough to say?', 'Sources are ranked from your own data down to news aggregators. Some claims, like a loss estimate, need a specialist source. With only press coverage behind it, the gate drops the claim.', 'Stays on your device'],
   ['grounding', 'Grounding', 'Does every number trace to a fact I approved?', 'Each line carries a tag naming the approved fact it came from. Assay checks that the fact exists and that the line states the same figure.', 'Stays on your device'],
-  ['values', 'Values', 'Is this figure right for that year?', 'It asks the source’s own data, such as the World Bank or the IMF, for that exact year and unit. A nearby year never counts as a match.', 'Looks it up online'],
+  ['values', 'Values', 'Is this figure right for that year?', 'It asks the source’s own data, such as the World Bank, the IMF, Eurostat or Our World in Data, or figures read off a central bank’s bulletin, for that exact year and unit. A nearby year never counts as a match.', 'Looks it up online'],
   ['links', 'Links', 'Does this link work, and is it safe to open?', 'From a server only. It checks the page is there, and refuses addresses that point into your own network without making any request.', 'Makes web requests, server only'],
   ['support', 'Support', 'Does the source actually say it?', 'A model you supply proposes a sentence from the source as evidence. Assay finds that exact sentence in the source, or marks the evidence as invented. Even when found, a person confirms the reading.', 'Stays on your device (your model may not)'],
   ['retractions', 'Retractions', 'Has this paper been retracted?', 'It asks Crossref, which includes the Retraction Watch database, whether the paper has a retraction, withdrawal, correction or expression-of-concern notice.', 'Looks it up online'],
   ['legal', 'Legal', 'Is this case citation real, and is it that case?', 'It asks CourtListener what case is held under each citation, and catches a real citation attached to the wrong case. Server side only; needs a free token.', 'Sends the text to CourtListener, server only'],
 ];
+const COUNT0 = publicView(emptyTotals(0));
+const COUNT_BAR = (() => { const t = Math.max(1, COUNT0.ok + COUNT0.check + COUNT0.failed); return [COUNT0.ok, COUNT0.check, COUNT0.failed].map((n) => Math.round((n / t) * 1000) / 10); })();
 const home = `<main id="main">
 <section class="col hero">
 <p class="tag">Free and open source · MIT</p>
 <h1>AI writes with total confidence. Sometimes it makes things up.</h1>
-<p class="lede">Assay reads what the AI wrote and tells you which citations are not real papers, which quotes are not in the source, and which numbers nobody gave it. You decide what to publish.</p>
+<p class="lede">Assay reads what the AI wrote and tells you which citations and sources are not real, which quotes are not in the source, and which numbers or statistics nobody gave it or got wrong. It works on research, reports, news and company figures alike. You decide what to publish.</p>
 <div class="actions"><a class="pill solid" href="/try/">Try it now</a><a class="pill" href="/start/">Add it to your app</a></div>
 <p class="tag">The checks that use your own text run in your browser and send nothing anywhere.</p>
 </section>
@@ -326,17 +379,36 @@ ${story(ex('Values'), 'The right source, the wrong year', `A draft says Nigerian
 </div>
 <p class="actions"><a class="pill" href="/cases/">These are small. Read the cases that cost real money</a></p>
 </div></section>
-<section class="band"><div class="col">
-<h2>What it has caught, so far</h2>
-<p class="sub">These are counted from the project's own work, and each one links to where it comes from. They are not usage statistics: Assay has no telemetry, so it cannot see what it catches in other people's apps. That is a promise, not a gap.</p>
-<ul class="tally">
-<li><span class="num">15 of 30</span><p>citations written by free models that turned out invented or wrongly linked, in a hand-labelled sample from 3 November 2026.</p><a href="/paper/#8-evaluation">The sample, and why it is not a benchmark</a></li>
-<li><span class="num">34 of 36</span><p>references in the project's two technical papers were verified by Assay itself; two could not be checked because a source was throttling, and none failed or was retracted.</p><a href="/paper/#7-verifying-the-library">How that was run</a></li>
-<li><span class="num">1</span><p>real bug in Assay found by Assay: a correctly cited paper looked wrong because its title carried markup. Fixed in 0.4.0.</p><a href="/changelog/">In the changelog</a></li>
-<li><span class="num">10</span><p>places where Assay's own text parsing could be made to run for minutes on hostile input, found by measuring and fixed before release.</p><a href="/security/">In the security notes</a></li>
-</ul>
-<p class="sub">Want a counter for your own app? <code>createTally()</code> keeps only numbers, never text, and you decide where they go. Try the checks yourself: the demo counts what it catches for you, on your device only.</p>
-<p class="actions"><a class="pill" href="/try/">Try the checks</a><a class="pill" href="${GH}#tally">About the tally helper</a></p>
+<section class="band" id="counter"><div class="col">
+<div class="count-head"><h2>What Assay has caught</h2><p class="live-pill" aria-live="polite"><i class="dot" aria-hidden="true"></i><span id="live-state">Live</span></p></div>
+<div class="count-panel" id="live">
+<div class="count-main"><span class="count-num" data-k="failed">${COUNT0.failed}</span><span class="count-cap">invented, missing or contradicted things caught</span></div>
+<dl class="count-side">
+<div><dt>Checked</dt><dd data-k="checked">${COUNT0.checked}</dd></div>
+<div><dt>Sent for a look</dt><dd data-k="check">${COUNT0.check}</dd></div>
+<div><dt>Reported live by apps</dt><dd data-a="checked">0</dd></div>
+</dl>
+<svg class="count-bar" viewBox="0 0 100 3" preserveAspectRatio="none" role="img" aria-label="Share of checked items that were fine, to look at, and caught"><rect id="bar-ok" class="b-ok" x="0" y="0" width="${COUNT_BAR[0]}" height="3"/><rect id="bar-check" class="b-check" x="${COUNT_BAR[0]}" y="0" width="${COUNT_BAR[1]}" height="3"/><rect id="bar-failed" class="b-failed" x="${COUNT_BAR[0] + COUNT_BAR[1]}" y="0" width="${COUNT_BAR[2]}" height="3"/></svg>
+<p class="count-key"><span><i class="k-ok"></i>Fine</span><span><i class="k-check"></i>Look at it</span><span><i class="k-failed"></i>Caught</span></p>
+</div>
+<details class="count-more"><summary>Where the numbers come from, and how to take part</summary>
+<p class="small">One counter: the project's own documented runs plus what apps that chose to take part have reported. Only numbers are ever sent, never text, and app reports are self-reported and not verified.</p>
+<div class="table-wrap"><table><caption class="sr">Where the counted items come from</caption><thead><tr><th>Where they come from</th><th>When</th><th>Checked</th><th>Caught</th><th>To look at</th></tr></thead><tbody>
+${COUNT0.sources.map((r) => `<tr><td><a href="${r.link}">${esc(r.label)}</a></td><td>${esc(r.when)}</td><td>${r.checked}</td><td>${r.failed}</td><td>${r.check}</td></tr>`).join('\n')}
+<tr><td>Apps that chose to report, live</td><td id="live-when">none yet</td><td data-a="checked">0</td><td data-a="failed">0</td><td data-a="check">0</td></tr>
+</tbody></table></div>
+<p class="small" id="live-note">Loading the live part of the counter.</p>
+<h3>Take part: three lines in your app</h3>
+<pre><code>${esc(`import { createAssay } from '@extrafemi-ai/assay';
+import { createTally } from '@extrafemi-ai/assay/tally';
+import { startSharing } from '@extrafemi-ai/assay/share';
+
+const tally = createTally();
+const assay = createAssay({ tally });   // counts what it finds, in memory
+startSharing(tally);                    // sends the numbers, never text, every ten minutes`)}</code></pre>
+<p class="small">What is sent: for each check, how many items were checked and how many came back ok, to check or failed. No text, names or identifiers. The counter keeps no address: it hashes the sender with the day's date, in memory, only to limit what one sender can add in a day, and forgets it. Its code is in the repository, in <code>worker/</code>.</p>
+<p class="small">Also found while building Assay, and not counted above because they were not checks: one real bug in Assay itself (a correctly cited paper looked wrong because its title carried markup, fixed in 0.4.0) and ten places where its own text parsing could be made to run for minutes on hostile input. See the <a href="/changelog/">changelog</a> and the <a href="/security/">security notes</a>.</p>
+</details>
 </div></section>
 <section class="band"><div class="col">
 <h2>Why a red mark is worth believing</h2>
@@ -353,13 +425,6 @@ ${story(ex('Values'), 'The right source, the wrong year', `A draft says Nigerian
 <p class="actions"><a class="pill solid" href="/start/">Get started</a><a class="pill" href="/checks/">Reference</a><a class="pill" href="/paper/">Technical paper</a></p>
 </div></section>
 </main>`;
-
-const homeLd = `<script type="application/ld+json">${JSON.stringify({
-  '@context': 'https://schema.org', '@graph': [
-    { '@type': 'WebSite', '@id': `${SITE}/#site`, url: `${SITE}/`, name: 'Assay', description: 'Checks AI-written text against evidence.', inLanguage: 'en' },
-    { '@type': 'SoftwareSourceCode', '@id': `${SITE}/#code`, name: 'Assay', codeRepository: GH, programmingLanguage: 'TypeScript', license: 'https://opensource.org/license/mit', description: pkg.description },
-  ],
-}).replace(/</g, '\\u003c')}</script>\n`;
 
 const checksOverview = readme.split('\n## ')[0];
 const checkSections = CHECKS.map(([n]) => {
@@ -467,7 +532,7 @@ const CASES = [
     cost: 'A $5,000 fine, an order to write to each judge whose name had been put on a fake opinion, and the passenger’s case dismissed as filed too late.',
     note: 'The dollar figure is small. The reputational cost, and the lesson for every lawyer after them, is not.',
     scene: 'legal', verdict: ['yes', 'Yes, for the fake citations'],
-    would: 'The legal check looks every case citation up in CourtListener and catches a real citation attached to the wrong case. It has not yet been run live with a token. No check fixes the second failure: standing by a citation after being asked about it.',
+    would: 'The legal check looks every case citation up in CourtListener and catches a real citation attached to the wrong case. Its first live run, on 4 November 2026, found a real citation, caught a real citation attached to the wrong case, and left an invented one unverified. No check fixes the second failure: standing by a citation after being asked about it.',
     sources: [['Bloomberg Law: Phony ChatGPT brief leads to $5,000 fine', 'https://news.bloomberglaw.com/energy/chatgpt-phony-legal-filing-case-gets-lawyers-a-5-000-fine']],
     cite: 'Mata v. Avianca, Inc., No. 22-cv-1461 (PKC), 678 F. Supp. 3d 443 (S.D.N.Y. 2023).',
   },
@@ -538,19 +603,23 @@ ${tool('t-grounding', 'Grounding', 'Does each tagged line trace to an approved c
 const canaryOf = (src) => (src.canary ? `finds “${src.canary.title}” (${src.canary.surname})` : '—');
 const valueCanaryOf = (src) => (src.canary ? `returns about ${src.canary.expected.toLocaleString('en-US')} for ${src.canary.claim.geo}, ${src.canary.claim.period}` : '—');
 const SOURCES = [
-  ['CrossRef', 'citations, retractions', 'Metadata that publishers deposit for journal articles, books and more; notices of retraction, withdrawal and correction, including Retraction Watch’s.', 'Free API. Give an address (`mailto`) so they can contact you.', canaryOf(A.crossref), 'Yes'],
-  ['OpenAlex', 'citations', 'An open index of scholarly works; stronger on books and working papers.', 'Free. Each address has a small daily credit budget; a free key lifts it.', canaryOf(A.openalex), 'Yes'],
-  ['Open Library', 'citations', 'A free catalogue of books, which the journal indexes hold under other titles.', 'Free.', canaryOf(A.openlibrary), 'Yes'],
-  ['PubMed (opt-in)', 'citations', 'The biomedical literature, including work the others index poorly.', 'NCBI E-utilities, free.', canaryOf(A.pubmed), 'Yes'],
-  ['Semantic Scholar (opt-in)', 'citations', 'A broad index, strong in computer science.', 'Free shared pool; a key lifts it.', canaryOf(A.semanticscholar), 'No: its shared pool answered 429 whenever tried'],
-  ['DOI registries', 'citations (links)', 'Where a DOI, SSRN or arXiv link resolves: doi.org, and DataCite for DOIs CrossRef does not hold.', 'Free.', 'none (a lookup, not a search)', 'Tested on recorded replies'],
-  ['World Bank', 'values', 'The Indicators API: remittances, GDP, inflation, unemployment, population and more, by country and year.', 'Free, no key.', valueCanaryOf(V.worldBank), 'Yes'],
-  ['IMF', 'values', 'DataMapper: World Economic Outlook aggregates only.', 'Free, no key.', valueCanaryOf(V.imf), 'Yes'],
-  ['Eurostat (opt-in)', 'values', 'European statistics for the EU, Iceland, Norway and Switzerland: unemployment, inflation, GDP, population.', 'Free, no key.', valueCanaryOf(V.eurostat), 'Yes'],
-  ['Seeded figures', 'values', 'Figures a person read off a primary publication (a central bank’s report, a statistics office’s release) where no API exists.', 'Supplied by you. Every figure is reported as verified, so none should come from memory or from a model.', 'none (a person verifies)', 'Not applicable'],
-  ['CourtListener', 'legal', 'The Free Law Project’s database of US court decisions, with a citation-lookup API.', 'Free token. Sends the text to courtlistener.com.', 'none yet', 'No: built from the API reference; no token has been used'],
+  ['CrossRef', 'Scholarly', 'citations, retractions', 'Metadata that publishers deposit for journal articles, books and more; notices of retraction, withdrawal and correction, including Retraction Watch’s.', 'Free API. Give an address (`mailto`) so they can contact you.', canaryOf(A.crossref), 'Yes'],
+  ['OpenAlex', 'Scholarly', 'citations', 'An open index of scholarly works; stronger on books and working papers.', 'Free. Each address has a small daily credit budget; a free key lifts it.', canaryOf(A.openalex), 'Yes'],
+  ['Open Library', 'Scholarly', 'citations', 'A free catalogue of books, which the journal indexes hold under other titles.', 'Free.', canaryOf(A.openlibrary), 'Yes'],
+  ['PubMed (opt-in)', 'Scholarly', 'citations', 'The biomedical literature, including work the others index poorly.', 'NCBI E-utilities, free.', canaryOf(A.pubmed), 'Yes'],
+  ['Semantic Scholar (opt-in)', 'Scholarly', 'citations', 'A broad index, strong in computer science.', 'Free shared pool; a key lifts it.', canaryOf(A.semanticscholar), 'No: its shared pool answered 429 whenever tried'],
+  ['DOI registries', 'Scholarly', 'citations (links)', 'Where a DOI, SSRN or arXiv link resolves: doi.org, and DataCite for DOIs CrossRef does not hold.', 'Free.', 'none (a lookup, not a search)', 'Tested on recorded replies'],
+  ['World Bank', 'Official statistics', 'values', 'The Indicators API: remittances, GDP, inflation, unemployment, population and more, by country and year.', 'Free, no key.', valueCanaryOf(V.worldBank), 'Yes'],
+  ['IMF', 'Official statistics', 'values', 'DataMapper: World Economic Outlook aggregates only.', 'Free, no key.', valueCanaryOf(V.imf), 'Yes'],
+  ['Eurostat (opt-in)', 'Official statistics', 'values', 'European statistics for the EU, Iceland, Norway and Switzerland: unemployment, inflation, GDP, population.', 'Free, no key.', valueCanaryOf(V.eurostat), 'Yes'],
+  ['Our World in Data (opt-in)', 'Data compiler', 'values', 'Charts compiled from the UN, the World Bank, national bodies and researchers, each naming its original source, which the verdict repeats. Any chart can be named by its address slug.', 'Free, no key, CC BY.', valueCanaryOf(V.ourWorldInData), 'Yes'],
+  ['Any statistics or records service you describe', 'Central banks, statistics offices, regulators, registers, news APIs, your own records', 'values or citations', 'Whatever the service holds. Described with data (`jsonValueSource`, `jsonSource`) or code.', 'Yours: https, a fixed host, and a required self-test.', 'required, and chosen by you', 'Not applicable: yours to verify'],
+  ['Seeded figures', 'Central banks, statistics offices, anything with no interface', 'values', 'Figures a person read off a primary publication (a central bank’s bulletin, a statistics office’s release) where no interface exists.', 'Supplied by you. Every figure is reported as verified, so none should come from memory or from a model.', 'none (a person verifies)', 'Not applicable'],
+  ['CourtListener', 'Legal', 'legal', 'The Free Law Project’s database of US court decisions, with a citation-lookup API.', 'Free token. Sends the text to courtlistener.com.', 'none (it asks about citations you give it)', 'Yes, once: three citations on 4 November 2026'],
+  ['Your tier policy', 'News, official bodies, specialist analysts, first-party data', 'gate', 'Which bodies and outlets rank where, as you list them. The example policy puts UN agencies, central banks and regulators first, specialist analysts second, the financial press third, and encyclopaedias and aggregators never alone.', 'No network: it judges how a claim is sourced, not whether it is true.', 'not applicable', 'Tested on recorded examples'],
+  ['The live web', 'Any page: bulletins, filings, news, official sites', 'links', 'Whether the page is there.', 'Server side only, public addresses only.', 'none (a request, not a search)', 'Yes, on real pages'],
 ];
-const sourcesTable = `<div class="table-wrap wide"><table><thead><tr><th>Source</th><th>Used by</th><th>What it holds</th><th>How it is reached</th><th>Its self-test</th><th>Checked against the live service</th></tr></thead><tbody>${SOURCES.map((r) => `<tr>${r.map((c, i) => `<td>${i === 0 ? '<strong>' + esc(c) + '</strong>' : inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const sourcesTable = `<div class="table-wrap wide"><table><thead><tr><th>Source</th><th>Kind</th><th>Used by</th><th>What it holds</th><th>How it is reached</th><th>Its self-test</th><th>Checked against the live service</th></tr></thead><tbody>${SOURCES.map((r) => `<tr>${r.map((c, i) => `<td>${i === 0 ? '<strong>' + esc(c) + '</strong>' : inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 const EVID_TABLE = [
   ['Citations', 'A bibliographic record whose authors, title and year match; a registry entry for the DOI given.', 'A model’s say-so. A record that matches only the title.', 'A record can be opened by anyone; a model’s confidence cannot.'],
   ['Quotes', 'The sentence occurring in the source text you supply.', 'A paraphrase. A fragment under twelve characters.', 'A short fragment appears in almost any text and proves nothing.'],
@@ -586,7 +655,7 @@ Assay uses "evidence" in a narrow sense. Something is evidence only if all four 
 ${md(`## 3. Evidence, check by check`)}
 ${evidTable}
 ${md(`## 4. The sources`)}
-<p>These are all the places Assay ever sends a request, apart from the addresses in a text you ask its link checker to check. It does not add to this list by itself: a new source is a new thing whose answers are believed, so adding one is a decision for a person (see section 8). The self-test column is the work each source must be able to find before its "not found" is believed.</p>
+<p>Assay is not only for academic work. Its checks came from tools that lean on central-bank bulletins, statistics offices, regulatory filings, industry analysts and the financial press as much as on papers, and the table says which kind each source is. Where a source has an open interface, Assay can look it up itself. Where it has none, the evidence is the page, which the links check confirms and your tier policy ranks, or a figure a person read off it and seeded. These are all the places Assay ever sends a request, apart from the addresses in a text you ask its link checker to check. It does not add to this list by itself: a new source is a new thing whose answers are believed, so adding one is a decision for a person (see section 8). The self-test column is the work each source must be able to find before its "not found" is believed.</p>
 ${sourcesTable}
 ${md(`## 5. Source quality: the tiers behind the gate
 
@@ -611,7 +680,7 @@ ${md(`## 8. Adding your own source
 
 You can add a source; Assay will not add one to itself. A library that adopted sources automatically could be pointed at a poisoned one, and would change which hosts it contacts without anyone deciding to. A source you add inherits the same safeguards: its replies are shape-checked, its "not found" is not believed until it passes its self-test, and a failing source is left alone.
 
-You can write one with data, for any service that answers JSON over https. It must have a fixed host and a self-test work, or Assay refuses it:`)}
+It can be a university repository, but just as well a central bank's data portal, a statistics office, a regulator's register, a company-filings API, a news API, or your own first-party records. You can describe one with data, for any service that answers JSON over https: \`jsonSource\` for citations, \`jsonValueSource\` for statistics. It must have a fixed host and a self-test work, or Assay refuses it. A citation source looks like this:`)}
 <pre><code>${esc(`import { createAssay, defaultSources, jsonSource } from '@extrafemi-ai/assay';
 
 const myIndex = jsonSource({
@@ -623,7 +692,7 @@ const myIndex = jsonSource({
   canary: { title: 'A work this repository certainly holds', surname: 'Surname', authors: ['Surname'] },
 });
 const assay = createAssay({ sources: [...defaultSources, myIndex] });`)}</code></pre>
-${md(`Or implement the \`SearchSource\` or \`ValueSource\` interface in code, or supply figures you checked yourself with \`seededSource\`. To add a source to Assay itself, open a pull request with the source, a fixture recorded from the real service, a self-test work, and a note saying whether it was verified live. The [reference](/checks/) has the details.`)}
+${md(`Or implement the \`SearchSource\` or \`ValueSource\` interface in code, or supply figures you checked yourself with \`seededSource\`. For sources with no interface at all, rank them with the gate: [\`examples/gate-policy-markets-and-trade.mjs\`](https://github.com/obasaolorunfemi-ai/assay/blob/main/examples/gate-policy-markets-and-trade.mjs) is a ready-made policy for markets, energy, trade and food-security claims. To add a source to Assay itself, open a pull request with the source, a fixture recorded from the real service, a self-test work, and a note saying whether it was verified live. The [reference](/checks/) has the details.`)}
 ${md(`## 9. Known limitations
 
 - **Evidence that something exists is not evidence that it says what the sentence claims.** A verified citation can still be attached to a false claim. The support check reaches toward this, but only as far as a model's reading plus a quotation found in the source.
@@ -671,7 +740,7 @@ The [cases page](/cases/) describes publicly reported court decisions, tribunal 
 
 ## Your text and your data
 
-The checks that compare text with material you supply run on your own device or server and make no requests. The citation check sends the author names, title, year and link of each citation, and the retraction, value and link checks send DOIs, search terms or addresses, to the services they query, as the documentation states. The legal check sends the text you give it to CourtListener, and a model you supply to the support check will receive whatever you send it. Do not send confidential or personal text anywhere you would not otherwise send it. The offline demonstration on this site sends nothing: its security policy does not allow the page to make a request.
+The checks that compare text with material you supply run on your own device or server and make no requests. The citation check sends the author names, title, year and link of each citation, and the retraction, value and link checks send DOIs, search terms or addresses, to the services they query, as the documentation states. The legal check sends the text you give it to CourtListener, and a model you supply to the support check will receive whatever you send it. Do not send confidential or personal text anywhere you would not otherwise send it. The offline demonstration on this site sends nothing: its security policy does not allow the page to make a request. Assay itself sends no usage data. An app that chooses to can share a handful of counts (how many items were checked and how many were ok, to check or failed, per check) with the public counter shown on the home page: no text, no names, no identifiers, and the counter keeps no address. That counter is self-reported and not verified.
 
 ## Changes and corrections
 
@@ -691,7 +760,7 @@ const put = (path, html) => {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, html);
 };
-put('', page({ path: '/', key: 'home', title: 'Assay: catch what AI made up', desc: 'Finds invented citations, quotes that are not in the source, and numbers nobody gave the AI. Free, open source, and the checks on your own text run in your browser.', body: home, ld: homeLd, scripts: `\n<script src="/anim.js?v=${V8}" defer></script>` }));
+put('', page({ path: '/', key: 'home', title: 'Assay: catch what AI made up', desc: 'Finds invented citations, quotes that are not in the source, and numbers nobody gave the AI. Free, open source, and the checks on your own text run in your browser.', body: home, scripts: `\n<script src="/anim.js?v=${V8}" defer></script>\n<script src="/counter.js?v=${V8}" defer></script>` }));
 put('start', page({ path: '/start/', key: 'start', title: 'Get started · Assay', desc: 'Install Assay and run the check that fits: citations, quotes, figures, the source gate or grounding.', body: startPage }));
 put('paper', page({ path: '/paper/', key: 'paper', title: 'Technical paper · Assay', desc: 'How Assay works, how it fails and where it stops: design, self-healing, limits, security and changelog.', body: paperPage }));
 put('evidence', page({ path: '/evidence/', key: 'evidence', title: 'What counts as evidence · Assay', desc: 'What Assay counts as evidence, why, and which sources it uses, check by check, with the self-tests and limits of each source.', body: evidencePage }));
@@ -705,7 +774,7 @@ put('security', page({ path: '/security/', key: 'security', title: 'Security · 
 put('changelog', page({ path: '/changelog/', key: 'changelog', title: 'Changelog · Assay', desc: 'What changed in each Assay release.', body: changelogPage }));
 put('404', page({ path: '404', key: '', title: 'Not found · Assay', desc: 'Page not found.', body: notFound, noindex: true }));
 
-for (const f of ['theme.js', 'menu.js', 'demo.js', 'anim.js', 'favicon.svg', '_headers', 'robots.txt']) copyFileSync(join(src, f), join(out, f));
+for (const f of ['theme.js', 'menu.js', 'demo.js', 'anim.js', 'counter.js', 'favicon.svg', '_headers', 'robots.txt', 'assay-share-card-1200x630.png']) copyFileSync(join(src, f), join(out, f));
 writeFileSync(join(out, 'style.css'), readFileSync(join(src, 'style.css'), 'utf8') + '\n' + animCss);
 cpSync(join(src, 'fonts'), join(out, 'fonts'), { recursive: true });
 
@@ -725,7 +794,7 @@ for (const f of need) {
 }
 
 const urls = ['/', '/cases/', '/try/', '/start/', '/evidence/', '/checks/', '/paper/', '/disclaimer/', '/self-healing/', '/limits/', '/security/', '/changelog/'];
-writeFileSync(join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE}${u}</loc></url>`).join('\n')}\n</urlset>\n`);
+writeFileSync(join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE}${u}</loc><lastmod>${SITE_UPDATED}</lastmod></url>`).join('\n')}\n</urlset>\n`);
 writeFileSync(join(out, 'llms.txt'), `# Assay\n\n> Checks AI-written text against evidence. A set of separate checks (citations, quotes, figures, gate, grounding, values, links), each saying what it compared the text with. npm: ${pkg.name}. MIT.\n\n- [What counts as evidence](${SITE}/evidence/): what Assay counts as evidence, why, and which sources\n- [Disclaimer](${SITE}/disclaimer/): limits of Assay and this site\n- [When AI made things up](${SITE}/cases/): documented cases and whether Assay would have caught each\n- [Get started](${SITE}/start/): install and recipes\n- [Reference](${SITE}/checks/): every check, option and status\n- [Self-healing](${SITE}/self-healing/): how it avoids accusing when a source is down\n- [Limits](${SITE}/limits/): what it cannot do\n- [Security](${SITE}/security/): publishing, protections, link-checker threat model\n- [Changelog](${SITE}/changelog/)\n- [Source](${GH})\n- [Full text](${SITE}/llms-full.txt)\n`);
 writeFileSync(join(out, 'llms-full.txt'), `${readme}\n\n---\n\n${readFileSync(join(root, 'SECURITY.md'), 'utf8')}`);
 console.log(`site built: ${urls.length + 1} pages, ${need.size} library files for the browser tools, v=${V8}`);

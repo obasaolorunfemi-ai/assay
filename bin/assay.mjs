@@ -8,7 +8,7 @@
 //   assay health                                   is each source answering, and answering correctly? (exit 1 if one is not; --strict also if one is down)
 //   assay grounding --draft draft.md --claims claims.txt                              (claims: one per line, numbered c1, c2 in order)
 //   add --json for the raw report, or --html report.html for a page a person can review
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
 
@@ -50,14 +50,15 @@ if (o.version) { console.log(pkg.version); process.exit(0); }
 const [command, file] = positionals;
 if (o.help || !command) { console.log(HELP); process.exit(command || o.help ? 0 : 2); }
 
+if (!existsSync(new URL('../dist/index.js', import.meta.url))) die('this copy has not been built yet. From the repository folder, run: npm ci && npm run build');
 const lib = (m) => import(new URL(`../dist/${m}.js`, import.meta.url).href);
 if (command === 'health') {
   // Self-regulation is only worth something if somebody notices when a source stops answering correctly. This asks each source for a work it must know.
   // degraded = it answers, but not with the work it should have (a changed reply, a broken index): that needs a person. down = unreachable or throttled: usually temporary.
   const { createAssay, defaultSources, pubmed } = await lib('index');
-  const { createValues, defaultValueSources, eurostat } = await lib('values');
+  const { createValues, defaultValueSources, eurostat, ourWorldInData } = await lib('values');
   const mailto = o.mailto ? { mailto: o.mailto } : {};
-  const groups = [['Citation sources', await createAssay({ ...mailto, sources: [...defaultSources, pubmed] }).health()], ['Value sources', await createValues({ ...mailto, sources: [...defaultValueSources, eurostat] }).health()]];
+  const groups = [['Citation sources', await createAssay({ ...mailto, sources: [...defaultSources, pubmed] }).health()], ['Value sources', await createValues({ ...mailto, sources: [...defaultValueSources, eurostat, ourWorldInData] }).health()]];
   let bad = 0, down = 0;
   for (const [title, list] of groups) {
     console.log(title);

@@ -2,6 +2,14 @@
 
 Versions before 1.0 may change between minor releases; each change that could break a caller is marked **breaking**.
 
+## 0.5.0
+
+**The legal check, run live.** `/legal` was run against the real CourtListener for the first time (three citations: found, caught under the wrong case, not verified) and the run is recorded in `docs/legal-live-verification.md`, repeatable with `npm run legal:live`. It exposed a defect, fixed here: a sentence-opening word such as "Also" was read as part of the case name, so a message said `not "Also Roe v. Wade"`.
+
+**Sources beyond the academic.** `ourWorldInData` (opt in; verified live) reads any Our World in Data chart, one year at a time, takes the country from the data rather than trusting the address, and puts the original source OWID cites in the verdict. `jsonValueSource` adds any JSON statistics service with data, as `jsonSource` does for citations. `examples/gate-policy-markets-and-trade.mjs` is a ready-made tier policy for markets, energy, trade and food-security claims. `Http` gained an optional `text()` for sources that answer in CSV. The docs and site no longer read as if Assay were only for papers.
+
+**Live counter (opt-in).** `@extrafemi-ai/assay/share` (`shareTally`, `startSharing`) lets an app add its counts to the public counter on the project's home page, and the `tally` option on `createAssay`, `createValues`, `createRetractions`, `createLegal`, `createSupport` and `createLinkChecker` counts what they find. Off unless your code calls it; numbers only, never text; a failed report is never fatal. The counter is a small Cloudflare Worker (`worker/`) with a Durable Object, rate-limited per sender per day, keeping no addresses; it is self-reported and not verified. The home page shows it live.
+
 ## 0.4.0
 
 New checks and tools for the gaps the first release named.

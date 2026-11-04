@@ -5,6 +5,7 @@
    never counts), and a model's opinion can flag a mismatch but can never produce "verified". */
 import type { Bucket, KeyValueStore, Summary } from './types.js';
 import { makeHttp, type Http } from './http.js';
+import type { Tally } from './tally.js';
 import { createHealthBook, type BreakerOptions, type SourceHealth } from './health.js';
 import { extractFigures, extractYears } from './numbers.js';
 import { summarizeBuckets } from './summary.js';
@@ -268,6 +269,141 @@ export const eurostat: ValueSource = {
   },
 };
 
+// ── Our World in Data ──────────────────────────────────────────────────────
+
+/** Charts known to work, with the words that pick them. Any other chart can be named by its address slug in `claim.indicator` (ourworldindata.org/grapher/<slug>). */
+export const OWID_INDICATORS: Array<{ id: string; keywords: string[]; unit: Unit }> = [
+  { id: 'population', keywords: ['population', 'inhabitants'], unit: null },
+  { id: 'life-expectancy', keywords: ['life expectancy'], unit: 'years' },
+  { id: 'co2-emissions-per-capita', keywords: ['co2 per capita', 'carbon emissions per person', 'emissions per capita'], unit: 'tonnes per person' },
+  { id: 'gdp-per-capita-worldbank', keywords: ['gdp per capita', 'income per person'], unit: 'international-$ in 2021 prices' },
+  { id: 'share-of-individuals-using-the-internet', keywords: ['internet users', 'using the internet', 'internet use'], unit: 'percent' },
+  { id: 'child-mortality', keywords: ['child mortality', 'under-five mortality'], unit: 'percent' },
+  { id: 'literacy-rate-adults', keywords: ['adult literacy', 'literacy rate'], unit: 'percent' },
+];
+
+/** One CSV line, with quoted fields. */
+function csvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = '', q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]!;
+    if (q) { if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+/** OWID names a unit in words. A percentage becomes 'percent'; a plain head-count ("people") becomes no unit; anything else is kept as OWID writes it, so a claim must say the same. */
+export function owidUnit(unit: string, shortUnit: string): Unit {
+  const u = `${unit} ${shortUnit}`.toLowerCase();
+  if (/%|percent/.test(u)) return 'percent';
+  if (/^\s*(people|persons?)\s*$/i.test(unit)) return null;
+  return unit.trim() || null;
+}
+
+/**
+ * Our World in Data (free, no key, CC BY): a compiler of statistics from the UN, the World Bank, national bodies and researchers, each chart carrying where its numbers come from.
+ * Opt in with `sources: [...defaultValueSources, ourWorldInData]`. The verdict names the original source OWID cites, because OWID is the route, not the origin.
+ * Name any chart by its address slug in `claim.indicator`. The country filter in the address is not trusted (some charts ignore it): the country is read from the data.
+ */
+export const ourWorldInData: ValueSource = {
+  name: 'Our World in Data',
+  canary: { claim: { value: 311_000_000, unit: null, period: 2010, geo: 'USA', indicator: 'population' }, expected: 311_000_000, tolerance: 0.03 },
+  async fetch(claim, { http }) {
+    const known = claim.indicator ? OWID_INDICATORS.find((i) => i.id === claim.indicator) : matchIndicator(OWID_INDICATORS.map((i) => ({ ...i, keywords: i.keywords })), claim.subject);
+    const slug = claim.indicator ?? known?.id;
+    if (!slug || !/^[a-z0-9][a-z0-9-]{1,100}$/.test(slug)) return { ok: false, kind: 'no-match' };
+    if (!/^[A-Z]{3}$/.test(claim.geo)) return { ok: false, kind: 'no-match' };
+    if (!http.text) return { ok: false, kind: 'unavailable', problem: 'this Http cannot read text' };
+    const y = Number(claim.period) || new Date().getFullYear();
+    const base = `https://ourworldindata.org/grapher/${slug}`;
+    // One request per year, not a range: for some charts a range returns only its two ends, which would read as "no figure for the year in between".
+    const years = [y - 1, y, y + 1];
+    const [meta, ...datas] = await Promise.all([http.json(`${base}.metadata.json?v=1&csvType=filtered&useColumnShortNames=true`), ...years.map((yr) => http.text!(`${base}.csv?v=1&csvType=filtered&useColumnShortNames=true&country=${claim.geo}&time=${yr}`))]);
+    if (meta.status === 404 || datas.some((d) => d.status === 404)) return { ok: false, kind: 'no-match' };
+    const cols = (meta.body as { columns?: Record<string, { unit?: string; shortUnit?: string; titleShort?: string; citationShort?: string }> } | null)?.columns;
+    const points: Array<{ year: number; value: number }> = [];
+    let valueColumn = '';
+    for (const data of datas) {
+      const lines = (typeof data.body === 'string' ? data.body : '').split(/\r?\n/).filter(Boolean);
+      const head = lines.length ? csvLine(lines[0]!) : [];
+      // Anything that is not "entity,code,year,<value>…" (an error page, a renamed column) is an outage, never "no data".
+      if (!data.ok || head.length < 4 || head[0] !== 'entity' || head[1] !== 'code' || head[2] !== 'year') return failure(data.ok ? { ...data, ok: true } : data);
+      valueColumn = head[3]!;
+      for (const line of lines.slice(1)) {
+        const f = csvLine(line);
+        const value = Number(f[3]);
+        if (f[1] === claim.geo && f[3] !== '' && Number.isFinite(value) && Number.isInteger(Number(f[2]))) points.push({ year: Number(f[2]), value });
+      }
+    }
+    const col = cols && (cols[valueColumn] ?? cols[Object.keys(cols)[0] ?? '']);
+    if (!meta.ok || !col || typeof col !== 'object') return failure(meta.ok ? { ...meta, ok: true } : meta);
+    if (!points.length) return { ok: false, kind: 'no-data', problem: 'no figures for that country and period' };
+    const cite = String(col.citationShort ?? '').replace(/\s+/g, ' ').replace(/ – with (major|minor) processing by Our World in Data/i, '').trim().slice(0, 90);
+    return { ok: true, series: { source: cite ? `Our World in Data (${cite})` : 'Our World in Data', indicatorId: slug, indicatorName: col.titleShort, unit: owidUnit(String(col.unit ?? ''), String(col.shortUnit ?? '')), points, url: `https://ourworldindata.org/grapher/${slug}` } };
+  },
+};
+
+// ── A statistics source added with data ─────────────────────────────────────
+
+export interface JsonValueSourceSpec {
+  name: string;
+  /** An https address with `{geo}` (ISO alpha-3 country code), `{from}` and `{to}` (years) and `{indicator}` where they go. The host must be fixed. */
+  url: string;
+  /** Extra headers, such as an API key. Fixed values only: a source added this way is yours, so put your own key in it, never one taken from text. */
+  headers?: Record<string, string>;
+  /** Dot path to the array of rows in the reply. */
+  results: string;
+  /** Dot paths, inside each row, to the year and the figure. */
+  fields: { year: string; value: string };
+  /** What a figure is, in the words claims use: 'percent', 'USD', 'NGN', or null for a plain count. */
+  unit: Unit;
+  /** Multiply the source's number by this to get a full value (1e6 for "millions"). */
+  magnitude?: number;
+  /** The indicators this source answers for: the id goes into `{indicator}`, the keywords pick it from a claim's `subject`. */
+  indicators: Array<{ id: string; keywords: string[] }>;
+  /** A figure that does not change (a past year's). Required: before this source's "mismatch" is believed, it is asked for this. */
+  canary: ValueCanary;
+}
+const at2 = (o: unknown, path: string): unknown => path.split('.').reduce<unknown>((v, k) => (v && typeof v === 'object' ? (v as Record<string, unknown>)[k] : undefined), o);
+
+/**
+ * Builds a `ValueSource` from a description, for any statistics service that answers JSON over https: a central bank's data portal, a statistics office, a regulator.
+ * The description is checked when you make it (https, a fixed host, a canary, at least one indicator) and the reply every time: a reply that is not an array of rows is an outage, never "no data".
+ */
+export function jsonValueSource(spec: JsonValueSourceSpec): ValueSource {
+  if (!spec.name?.trim()) throw new TypeError('jsonValueSource needs a name');
+  if (!spec.canary?.claim || !Number.isFinite(spec.canary.expected)) throw new TypeError(`jsonValueSource "${spec.name}" needs a canary: a figure that does not change, so a broken source cannot be mistaken for a wrong claim`);
+  if (!spec.indicators?.length || !spec.results || !spec.fields?.year || !spec.fields?.value) throw new TypeError(`jsonValueSource "${spec.name}" needs indicators, results and the year and value fields`);
+  let probe: URL;
+  try { probe = new URL(spec.url.replace(/\{(geo|from|to|indicator)\}/g, 'x')); } catch { throw new TypeError(`jsonValueSource "${spec.name}": the url is not an address`); }
+  if (probe.protocol !== 'https:') throw new TypeError(`jsonValueSource "${spec.name}": the url must be https`);
+  const hostEnd = spec.url.indexOf('/', 'https://'.length);
+  if (/[{}]/.test(hostEnd < 0 ? spec.url : spec.url.slice(0, hostEnd))) throw new TypeError(`jsonValueSource "${spec.name}": the host must be fixed, not filled from the claim`);
+  const list = spec.indicators.map((i) => ({ id: i.id, keywords: i.keywords, unit: spec.unit }));
+  return {
+    name: spec.name,
+    canary: spec.canary,
+    async fetch(claim, { http }) {
+      const ind = claim.indicator ? list.find((i) => i.id === claim.indicator) : matchIndicator(list, claim.subject);
+      if (!ind) return { ok: false, kind: 'no-match' };
+      if (!/^[A-Z]{3}$/.test(claim.geo)) return { ok: false, kind: 'no-match' };
+      const y = Number(claim.period) || new Date().getFullYear();
+      const url = spec.url.replace(/\{geo\}/g, claim.geo).replace(/\{from\}/g, String(y - 2)).replace(/\{to\}/g, String(y + 1)).replace(/\{indicator\}/g, encodeURIComponent(ind.id));
+      const r = await http.json(url, spec.headers && Object.keys(spec.headers).length ? { headers: spec.headers } : undefined);
+      const rows = at2(r.body, spec.results);
+      if (!r.ok || !Array.isArray(rows)) return failure(r);
+      const k = spec.magnitude ?? 1;
+      const points = rows.map((row) => ({ year: Number(at2(row, spec.fields.year)), value: Number(at2(row, spec.fields.value)) * k })).filter((p) => Number.isInteger(p.year) && Number.isFinite(p.value));
+      if (!points.length) return { ok: false, kind: 'no-data', problem: 'no figures for that country and period' };
+      return { ok: true, series: { source: spec.name, indicatorId: ind.id, unit: spec.unit, points } };
+    },
+  };
+}
+
 export const defaultValueSources: ValueSource[] = [worldBank, imf];
 
 // ── The checker ─────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -276,6 +412,8 @@ export const defaultValueSources: ValueSource[] = [worldBank, imf];
 export type CrossCheck = (claim: ValueClaim, context: { findings?: string }) => Promise<{ mismatch: boolean | null; note?: string; supersededBy?: string | null }>;
 
 export interface ValuesOptions {
+  /** Count what this checker finds in a `Tally` of your own (numbers only). Nothing is sent anywhere: see `shareTally` if you choose to share the counts. */
+  tally?: Tally;
   mailto?: string;
   sources?: ValueSource[];
   tolerance?: Tolerance;
@@ -458,5 +596,9 @@ export function createValues(opts: ValuesOptions = {}): Values {
     return health.snapshot(sources.map((s) => s.name));
   }
 
-  return { check, checkText, health: healthReport };
+  return {
+    check: async (claim, o) => { const v = await check(claim, o); opts.tally?.add('values', { verdicts: [v] }); return v; },
+    checkText: async (text, about, o) => { const r = await checkText(text, about, o); opts.tally?.add('values', r); return r; },
+    health: healthReport,
+  };
 }

@@ -1,6 +1,6 @@
 {
   "name": "@extrafemi-ai/assay",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Checks AI-written text against evidence: citations against CrossRef, OpenAlex and the DOI registries; quotes against their source text; figures against the materials you supplied. Each check says what it checked against, in plain words.",
   "license": "MIT",
   "repository": {
@@ -69,6 +69,10 @@
     "./tally": {
       "types": "./dist/tally.d.ts",
       "import": "./dist/tally.js"
+    },
+    "./share": {
+      "types": "./dist/share.d.ts",
+      "import": "./dist/share.js"
     }
   },
   "files": [
@@ -93,7 +97,9 @@
     "smoke": "npm run build && node scripts/smoke.mjs",
     "site": "npm run build && node site/build.mjs",
     "benchmark:template": "node scripts/benchmark-template.mjs",
-    "benchmark:agreement": "node scripts/agreement.mjs"
+    "benchmark:agreement": "node scripts/agreement.mjs",
+    "site:check": "node site/check.mjs",
+    "legal:live": "npm run build && node scripts/legal-live.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

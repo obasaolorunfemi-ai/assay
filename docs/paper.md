@@ -4,7 +4,7 @@
 
 **Affiliation:** Extrafemi Research
 
-*Technical report, version 1.0 (draft for author review), November 2026. It describes Assay 0.3.0 and, where marked, the 0.4.0 additions that were in review when it was written. Author contributions and funding are to be completed by the authors.*
+*Technical report, version 1.0, November 2026. It describes Assay 0.3.0 and, where marked, the 0.4.0 additions that were in review when it was written. The project is funded by Extrafemi via Extrafemi Labs and Extrafemi Research.*
 
 ## Abstract
 
@@ -53,6 +53,8 @@ Assay checks the *existence and traceability* of what text relies on. It does no
 
 **Scholarly infrastructure.** Crossref holds metadata deposited by publishers (Hendricks et al., 2020) and, since 2023, the Retraction Watch database of retractions (Crossref, 2023). OpenAlex is an open index of scholarly works (Priem et al., 2022); Semantic Scholar offers an open data platform (Kinney et al., 2023); PubMed is queried through NCBI's E-utilities (Kans, n.d.); Open Library catalogues books. Courts' decisions are searchable through the Free Law Project's CourtListener, whose citation-lookup API was introduced to help detect hallucinated case citations (Free Law Project, 2024). These services are free and shared, and each has its own limits and failure modes, which is the starting point of Section 5.
 
+**Official statistics and other non-academic evidence.** Much of what is written with AI help is not scholarship: policy briefs, market reports, journalism, business and development reporting. Its claims rest on official statistics, central-bank bulletins, regulators' filings, specialist analysts and the financial press. Some of these have open interfaces: the World Bank's Indicators API (World Bank, n.d.), the IMF's DataMapper, Eurostat's dissemination API (Eurostat, n.d.), and Our World in Data (n.d.), a compiler that publishes each series with the original source it draws on. Most do not: a central bank's bulletin is a document, and a news report is an article. For these the evidence is the page itself, and the question the checker can answer is whether the page is there and how well a source of that kind may carry a claim of that kind, which is the job of the source-tier policy of Section 4.4 rather than of a lookup.
+
 **Where this work sits.** The work above mostly proposes detectors and measures, evaluated on benchmarks. Assay is an engineering artefact with a different goal: to give a developer deterministic, explainable, individually usable checks that can run in a publishing pipeline, together with an explicit treatment of uncertainty and of the security of the checker itself. It does not compete with entailment models; Section 4.8 shows how one can be placed under the same discipline.
 
 **Reliability and security engineering.** Our treatment of unavailable sources uses established patterns: circuit breakers (Nygard, 2018; Fowler, 2014), bounded retries with backoff and jitter (Brooker, n.d.), honouring server-supplied waits (RFC 9110; RFC 6585), serving stale content when the origin fails (the intent of RFC 5861), and the broader practice of designing for failure (Beyer et al., 2016; Dean & Barroso, 2013). For security, the link checker builds on the OWASP guidance on server-side request forgery (OWASP, n.d.), the address-space registries and translation mechanisms of RFC 1918, RFC 4291, RFC 6052, RFC 3056, RFC 4380, RFC 6598 and RFC 6890, and the analysis of DNS rebinding by Jackson et al. (2007, 2009). Its input handling follows the literature on algorithmic-complexity attacks (Crosby & Wallach, 2003) and regular-expression denial of service (Davis et al., 2018). Treating model output and fetched content as untrusted data follows the analysis of indirect prompt injection by Greshake et al. (2023). The supply-chain posture draws on studies of the npm ecosystem (Zimmermann et al., 2019; Ohm et al., 2020) and on signed build provenance (Newman et al., 2022).
@@ -68,7 +70,7 @@ Assay checks the *existence and traceability* of what text relies on. It does no
 | figures | materials supplied by the user | no |
 | gate | a policy about the quality of sources | no |
 | grounding | a list of claims the user approved | no |
-| values | a statistical source's own data (World Bank, IMF, or seeded figures) | yes |
+| values | a statistical source's own data (World Bank, IMF, Eurostat, Our World in Data, any statistics service the user describes, or seeded figures) | yes |
 | links | the live web (server-side only) | yes |
 | support (0.4.0) | a source text, via a caller-supplied judge whose evidence is verified | no (the judge may) |
 | retractions (0.4.0) | Crossref's notices, including Retraction Watch | yes |
@@ -103,7 +105,7 @@ By this definition the following do *not* count as evidence, and no check treats
 | figures | the same value occurring in the supplied materials | the same digits with a different unit or kind (40% against 40) | the user's materials |
 | gate | a source whose domain is in the user's tier policy at the required tier, counted over distinct sites | a source's own claim about its standing; an unlisted domain above tier 3 | the user's policy |
 | grounding | an approved claim that exists, with a matching figure | a tag that names no approved claim; reasoning (`[[logic]]`) offered for a number | the user's approved claims |
-| values | a published series for the exact period and unit | a nearby year; a different unit; a model's figure | World Bank, IMF, Eurostat (opt-in), figures a person seeded |
+| values | a published series for the exact period and unit | a nearby year; a different unit; a model's figure | World Bank, IMF, Eurostat and Our World in Data (opt-in), any statistics service the user describes, figures a person seeded |
 | links | an HTTP response from the page | a blocked or unreachable response treated as absence | the live web |
 | support | a quotation, given by a judge, that is found in the supplied source | the judge's verdict alone | the user's source text |
 | retractions | a retraction, withdrawal, correction or concern notice for the DOI | an absence of notice read as proof of none | Crossref, including Retraction Watch |
@@ -117,10 +119,16 @@ By this definition the following do *not* count as evidence, and no check treats
 
 A citation is a square-bracket tag with authors, year and quoted title, optionally followed by a venue and a link. The same format is used in the prompt that asks the model for citations, so that producer and checker agree on it. For each citation the checker:
 
-1. *Finds the work, not only the title.* Author surname, title and year are searched in CrossRef and OpenAlex, and in Open Library for books. When two authors are cited, both must appear on the same record, so that a real author attached to a title they did not write is detected (status `mismatch`).
-2. *Checks the link it is given.* A DOI, SSRN abstract, arXiv paper or PubMed link is looked up in the registry that holds it. A real work cited with a wrong DOI (status `badlink`) is called out and the closest real DOI is offered.
+1.
+
+*Finds the work, not only the title.* Author surname, title and year are searched in CrossRef and OpenAlex, and in Open Library for books. When two authors are cited, both must appear on the same record, so that a real author attached to a title they did not write is detected (status `mismatch`).
+2.
+
+*Checks the link it is given.* A DOI, SSRN abstract, arXiv paper or PubMed link is looked up in the registry that holds it. A real work cited with a wrong DOI (status `badlink`) is called out and the closest real DOI is offered.
 3. *Compares journal and year* for journal articles, noticing citations that name the right work with the wrong venue or date.
-4. *Treats approximate citations separately.* A citation naming an area rather than a paper can only be answered by whether the author has related work (`approx-ok`, `approx-none`).
+4.
+
+*Treats approximate citations separately.* A citation naming an area rather than a paper can only be answered by whether the author has related work (`approx-ok`, `approx-none`).
 
 Matching uses accent-folded surnames and a title-similarity measure tolerant of a missing subtitle. Results are cached on the citation *and its link*: an early version keyed the cache on the citation alone, so a paper first cited with a correct DOI could cause a later invented DOI to pass. That defect is recorded here because it illustrates the class of error the design is meant to prevent, and a regression test now covers it.
 
@@ -142,7 +150,7 @@ A model that tags its own sentence `[[c3]]` has established nothing until someth
 
 ### 4.6 Values
 
-A citation can be real, its link live, and the claim can still state the wrong year's figure. The values check asks a statistical source's own data (World Bank, IMF, Eurostat in 0.4.0, or figures a person seeded from a primary publication) and is strict by design: the unit must match (a claim in one currency against a series in another is a different measurement, not a disagreement), the exact period must exist (a close number for another year is `period-unmatched`, a downgrade rather than a pass), and a model cannot produce "verified". An optional hook allows a caller-supplied model to contradict, never to verify.
+A citation can be real, its link live, and the claim can still state the wrong year's figure. The values check asks a statistical source's own data (World Bank, IMF, Eurostat in 0.4.0, Our World in Data, any statistics service described with data, or figures a person seeded from a primary publication such as a central bank's bulletin) and is strict by design: the unit must match (a claim in one currency against a series in another is a different measurement, not a disagreement), the exact period must exist (a close number for another year is `period-unmatched`, a downgrade rather than a pass), and a model cannot produce "verified". An optional hook allows a caller-supplied model to contradict, never to verify.
 
 ### 4.7 Links
 
@@ -158,7 +166,7 @@ Whether a page exists is the only claim the link checker makes. Statuses disting
 
 ### 4.9 Adding sources
 
-Because the evidence a verdict rests on is defined by its sources, adding a source is a decision about trust, and Assay leaves it to a person. A source is an object with a name, a self-test work (the *canary*) and a search function; a value source additionally supplies a series. Callers can supply their own, replace the defaults, or write one declaratively with `jsonSource`, which takes an https address with a fixed host, the location of the records and fields in the reply, and a required canary, and refuses a description that lacks any of these. A source added this way inherits the whole discipline of Section 5: its replies are shape-checked, its "not found" is not believed until it has passed its self-test, and a failing source is left alone. Assay deliberately does not discover or adopt sources itself. A library that adopted sources automatically could be directed at a poisoned one, would change which hosts it contacts without anyone deciding to, and would defeat the privacy statement of Section 6.4.
+Because the evidence a verdict rests on is defined by its sources, adding a source is a decision about trust, and Assay leaves it to a person. A source is an object with a name, a self-test work (the *canary*) and a search function; a value source additionally supplies a series. Callers can supply their own, replace the defaults, or write one declaratively: `jsonSource` for bibliographic services and `jsonValueSource` for statistics services take an https address with a fixed host, the location of the records and fields in the reply, and a required canary, and refuse a description that lacks any of these. The sources need not be academic: a university repository, a central bank's data portal, a statistics office, a regulator's register or a company-filings interface are described the same way. Sources with no interface at all are ranked by the gate against the user's own list of bodies and outlets, for which the repository includes an example policy for markets, energy, trade and food-security claims. A source added this way inherits the whole discipline of Section 5: its replies are shape-checked, its "not found" is not believed until it has passed its self-test, and a failing source is left alone. Assay deliberately does not discover or adopt sources itself. A library that adopted sources automatically could be directed at a poisoned one, would change which hosts it contacts without anyone deciding to, and would defeat the privacy statement of Section 6.4.
 
 ## 5 Self-healing
 
@@ -212,7 +220,7 @@ Because input is adversarial, patterns that are quadratic on long runs of a sing
 
 ### 6.4 Privacy and key handling
 
-The offline checks make no requests. The citation check sends only author names, title, year and link of each citation, to a fixed list of hosts; the user's `mailto` goes to CrossRef and OpenAlex and an OpenAlex key to OpenAlex only. Nothing is logged and the default cache is in memory. The `legal` check, in contrast, transmits the text it is given to CourtListener, and says so; it is server-side only so that its token is never placed in a page. The `support` check makes no request itself but a judge usually does, and the documentation warns against sending private text to a model the user would not otherwise trust with it.
+The offline checks make no requests. The citation check sends only author names, title, year and link of each citation, to a fixed list of hosts; the user's `mailto` goes to CrossRef and OpenAlex and an OpenAlex key to OpenAlex only. Nothing is logged and the default cache is in memory. The library sends no usage data. An application may opt in, by calling it explicitly, to add counts (checked, ok, to check, failed, per check; never text) to a public self-reported counter; the counter keeps running totals and no addresses, rate-limits each sender per day, and makes no claim to be verified. The `legal` check, in contrast, transmits the text it is given to CourtListener, and says so; it is server-side only so that its token is never placed in a page. The `support` check makes no request itself but a judge usually does, and the documentation warns against sending private text to a model the user would not otherwise trust with it.
 
 ### 6.5 Supply chain
 
@@ -226,7 +234,7 @@ Assay has no runtime dependencies, so installing it brings in nothing that could
 
 **Mutation checking of safeguards.** Mutation testing asks whether a test suite notices when the program is changed (Jia & Harman, 2011). We applied it by hand to the safeguards that matter most. For the 0.4.0 additions, eleven deliberate breaks (for example, accepting model-invented evidence, removing the response-shape guard of the retraction, PubMed and Eurostat sources, skipping the wrong-case comparison, leaving a title unescaped in the review page, and letting an unchanged rewrite loop) were each caught by a failing test, with no survivors. The self-healing and security rules of 0.3.0 were checked in the same way, which is how the masking described in Section 5.3 was found. Eleven mutations is a small set chosen by the authors, and we do not claim that it measures the whole suite.
 
-**Live verification.** Network components were run against the real services. The retraction check correctly flagged the 1998 *Lancet* paper by Wakefield and colleagues, reporting the retraction notice dated 6 February 2010 and recorded by Retraction Watch; PubMed and Eurostat sources passed their canary tests and a Eurostat claim was verified and a false one refused. Two components could not be fully verified live and are labelled as such: the Semantic Scholar source (its shared unauthenticated pool answered 429 whenever tried) and the CourtListener check (no token had been used). Both are built from the published API references, treat a reply of the wrong shape as an outage, and are tested against fixtures written from those references, which verifies the code's handling of the documented shape but not that the live service matches its documentation.
+**Live verification.** Network components were run against the real services. The retraction check correctly flagged the 1998 *Lancet* paper by Wakefield and colleagues, reporting the retraction notice dated 6 February 2010 and recorded by Retraction Watch; PubMed and Eurostat sources passed their canary tests and a Eurostat claim was verified and a false one refused. One component could not be fully verified live and is labelled as such: the Semantic Scholar source, whose shared unauthenticated pool answered 429 whenever tried. It is built from the published API reference, treats a reply of the wrong shape as an outage, and is tested against fixtures written from that reference, which verifies the code's handling of the documented shape but not that the live service matches its documentation. The CourtListener check was first run live on 4 November 2026, with three citations: a real citation was found, a real citation attached to the wrong case name was caught, and an invented citation was not verified. That run also exposed a defect, a sentence-opening word read as part of a case name, which is fixed and covered by a regression test; the record is in the repository (`docs/legal-live-verification.md`). Three citations on one day show that the check speaks the service's real protocol, not how often the service holds a given court's decisions.
 
 **Automated tests.** 371 tests in 0.3.0 and 432 in 0.4.0, run on Node 20, 22 and 24, together with a smoke test that loads every public entry point from the built package.
 
@@ -254,9 +262,15 @@ The repository contains a protocol and instruments for building one. Prompts and
 
 **Goodhart's law.** A checker used inside a loop with a model invites optimisation against it. A model asked to repair a failed citation can produce a different citation that merely exists, or a real record to which the sentence does not belong. Existence checks are cheap to satisfy, so passing them must not be read as correctness. This is why the repair loop keeps no model inside Assay, stops after a bounded number of rounds, and never reports success it has not checked.
 
-**Dependence on third-party services.** Results depend on the records, availability and rate limits of CrossRef, OpenAlex and the others. Section 5 limits the damage of an outage but not of a wrong record: a bibliographic database containing an error will propagate it.
+**Dependence on third-party services.** Results depend on the records, availability and rate limits of CrossRef, OpenAlex and the others. Section 5 limits the damage of an outage but not of a wrong record: a bibliographic database containing an error will propagate it. A data compiler such as Our World in Data is a route to the original source, not a replacement for it: the verdict names the original source the compiler cites, and an error in the compilation or in the original passes through.
 
-**Internal validity.** The labelled sample was labelled by the builders, and the mutation set was chosen by them. **External validity.** The sample covers one family of models at one time. **Construct validity.** "Found" means only that a matching record exists. **Reproducibility.** Network results depend on the state of live services on the day; the code, tests, fixtures and the corpus runner are published so that others can repeat the offline parts exactly and the online parts with their own dates.
+**Internal validity.** The labelled sample was labelled by the builders, and the mutation set was chosen by them.
+
+**External validity.** The sample covers one family of models at one time.
+
+**Construct validity.** "Found" means only that a matching record exists.
+
+**Reproducibility.** Network results depend on the state of live services on the day; the code, tests, fixtures and the corpus runner are published so that others can repeat the offline parts exactly and the online parts with their own dates.
 
 **What the checks cannot see.** The quotes check cannot detect a real quotation taken out of context. The figures check supports "40 men" with "40 women". The gate judges sourcing, not truth. Grounding cannot tell which number a line means when a claim carries several. Direct links cannot be checked from a browser. A wrong general-knowledge statement with no supplied source, such as the erroneous claim in the 2023 launch demonstration of a chatbot that moved a company's share price, is outside every check here unless a source is supplied for the support check to compare against.
 
@@ -270,7 +284,15 @@ We have described Assay, a set of separate, individually usable checks that comp
 
 ## Declarations
 
-**Competing interests.** The software described is developed and maintained by the first author, and is released under the MIT licence. **Funding.** None is stated for this draft; the authors should complete this section. **Data and code availability.** Source code, tests, the labelled sample, the corpus runner and the benchmark instruments are in the project repository at https://github.com/obasaolorunfemi-ai/assay; the version described is the `v0.3.0` tag, and the 0.4.0 additions are in the repository's `feat/0.4-gaps` branch at the time of writing. **Use of AI tools.** Parts of the software and of this draft were produced with the assistance of an AI model, and every reference was verified against Crossref, arXiv, the RFC Editor or the publisher by the process described below. **Affiliation.** Both authors: Extrafemi Research. **Author contributions.** To be completed by the authors.
+**Competing interests.** The software described is developed and maintained by the first author, and is released under the MIT licence.
+
+**Funding.** The project is funded by Extrafemi via Extrafemi Labs and Extrafemi Research.
+
+**Data and code availability.** Source code, tests, the labelled sample, the corpus runner and the benchmark instruments are in the project repository at https://github.com/obasaolorunfemi-ai/assay. The version described is the `v0.3.0` tag; the 0.4.0 additions are in the `v0.4.0` tag.
+
+**Use of AI tools.** Parts of the software and of this report were produced with the assistance of an AI model, and every reference was verified against Crossref, arXiv, the RFC Editor or the publisher by the process described below.
+
+**Affiliation.** Both authors: Extrafemi Research.
 
 ## References
 
@@ -291,6 +313,7 @@ We have described Assay, a set of separate, individually usable checks that comp
 - Dahl, M., Magesh, V., Suzgun, M., & Ho, D. E. (2024). Large legal fictions: Profiling legal hallucinations in large language models. *Journal of Legal Analysis*, *16*(1), 64–93. https://doi.org/10.1093/jla/laae003
 - Davis, J. C., Coghlan, C. A., Servant, F., & Lee, D. (2018). The impact of regular expression denial of service (ReDoS) in practice: An empirical study at the ecosystem scale. In *Proceedings of the 2018 26th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering* (pp. 246–256). ACM. https://doi.org/10.1145/3236024.3236027
 - Dean, J., & Barroso, L. A. (2013). The tail at scale. *Communications of the ACM*, *56*(2), 74–80. https://doi.org/10.1145/2408776.2408794
+- Eurostat. (n.d.). API: Getting started. *Eurostat data browser user guides*. https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access/api-getting-started
 - Fowler, M. (2014). CircuitBreaker. *martinfowler.com*. https://martinfowler.com/bliki/CircuitBreaker.html
 - Free Law Project. (2024, April 16). Combat hallucinations and look up citations with our new API. https://free.law/2024/04/16/citation-lookup-api/
 - Gao, L., Dai, Z., Pasupat, P., Chen, A., Chaganty, A. T., Fan, Y., Zhao, V., Lao, N., Lee, H., Juan, D.-C., & Guu, K. (2023a). RARR: Researching and revising what language models say, using language models. In *Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)* (pp. 16477–16508). ACL. https://doi.org/10.18653/v1/2023.acl-long.910
@@ -322,6 +345,7 @@ We have described Assay, a set of separate, individually usable checks that comp
 - Newman, Z., Meyers, J. S., & Torres-Arias, S. (2022). Sigstore: Software signing for everybody. In *Proceedings of the 2022 ACM SIGSAC Conference on Computer and Communications Security* (pp. 2353–2367). ACM. https://doi.org/10.1145/3548606.3560596
 - Nygard, M. T. (2018). *Release it! Design and deploy production-ready software* (2nd ed.). Pragmatic Bookshelf.
 - Ohm, M., Plate, H., Sykosch, A., & Meier, M. (2020). Backstabber's knife collection: A review of open source software supply chain attacks. In *Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA 2020)* (pp. 23–43). Springer. https://doi.org/10.1007/978-3-030-52683-2_2
+- Our World in Data. (n.d.). *Our World in Data*. https://ourworldindata.org/
 - OWASP Foundation. (n.d.). *Server-side request forgery prevention cheat sheet*. https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html
 - Priem, J., Piwowar, H., & Orr, R. (2022). OpenAlex: A fully-open index of scholarly works, authors, venues, institutions, and concepts. *arXiv preprint* arXiv:2205.01833. https://arxiv.org/abs/2205.01833
 - Rashkin, H., Nikolaev, V., Lamm, M., Aroyo, L., Collins, M., Das, D., Petrov, S., Tomar, G. S., Turc, I., & Reitter, D. (2023). Measuring attribution in natural language generation models. *Computational Linguistics*, *49*(4), 777–840. https://doi.org/10.1162/coli_a_00486
@@ -329,6 +353,7 @@ We have described Assay, a set of separate, individually usable checks that comp
 - Walters, W. H., & Wilder, E. I. (2023). Fabrication and errors in the bibliographic citations generated by ChatGPT. *Scientific Reports*, *13*(1), Article 14045. https://doi.org/10.1038/s41598-023-41032-5
 - Wang, P., Li, L., Chen, L., Cai, Z., Zhu, D., Lin, B., Cao, Y., Liu, Q., Liu, T., & Sui, Z. (2023). Large language models are not fair evaluators. *arXiv preprint* arXiv:2305.17926. https://arxiv.org/abs/2305.17926
 - Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. *Journal of the American Statistical Association*, *22*(158), 209–212. https://doi.org/10.1080/01621459.1927.10502953
+- World Bank. (n.d.). About the Indicators API documentation. *World Bank Data Help Desk*. https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation
 - Xu, Z., Jain, S., & Kankanhalli, M. (2024). Hallucination is inevitable: An innate limitation of large language models. *arXiv preprint* arXiv:2401.11817. https://arxiv.org/abs/2401.11817
 - Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S., Wu, Z., Zhuang, Y., Lin, Z., Li, Z., Li, D., Xing, E. P., Zhang, H., Gonzalez, J. E., & Stoica, I. (2023). Judging LLM-as-a-judge with MT-Bench and Chatbot Arena. *arXiv preprint* arXiv:2306.05685. https://arxiv.org/abs/2306.05685
 - Zimmermann, M., Staicu, C.-A., Tenny, C., & Pradel, M. (2019). Small world with high risks: A study of security threats in the npm ecosystem. In *28th USENIX Security Symposium* (pp. 995–1010). USENIX Association. https://www.usenix.org/conference/usenixsecurity19/presentation/zimmerman

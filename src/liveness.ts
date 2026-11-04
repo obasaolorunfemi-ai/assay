@@ -1,3 +1,4 @@
+import type { Tally } from './tally.js';
 /* Links: is this page really there?
    SERVER-SIDE ONLY (Node, Bun, Deno: it uses node:http, node:https and node:dns). It is not available to browser bundles, on purpose: it makes requests to URLs that come out
    of AI text, and a crafted link must never be able to make YOUR server reach your own network or your cloud's metadata service. So:
@@ -36,6 +37,8 @@ export interface LinkVerdict {
 export interface LinkReport { verdicts: LinkVerdict[]; summary: Summary; ok: boolean }
 
 export interface LinkOptions {
+  /** Count what this checker finds in a `Tally` of your own (numbers only). Nothing is sent anywhere: see `shareTally` if you choose to share the counts. */
+  tally?: Tally;
   /** Per request. Default 5 seconds. */
   timeoutMs?: number;
   /** Redirects followed. Default 5. */
@@ -206,7 +209,9 @@ export function createLinkChecker(opts: LinkOptions = {}): LinkChecker {
 
   async function check(urls: string[]): Promise<LinkReport> {
     const unique = [...new Set((Array.isArray(urls) ? urls : []).map((u) => String(u ?? '').trim()).filter(Boolean))];
-    return report(await Promise.all(unique.map((u, i) => (i < maxUrls ? checkOne(u) : Promise.resolve(verdict(u, 'limit', `Not checked: more than ${maxUrls} links in one call, so the rest were left alone rather than requested.`))))));
+    const rep = report(await Promise.all(unique.map((u, i) => (i < maxUrls ? checkOne(u) : Promise.resolve(verdict(u, 'limit', `Not checked: more than ${maxUrls} links in one call, so the rest were left alone rather than requested.`))))));
+    opts.tally?.add('links', rep);
+    return rep;
   }
 
   async function recheck(r: LinkReport): Promise<LinkReport> {
