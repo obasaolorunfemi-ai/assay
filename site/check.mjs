@@ -58,6 +58,30 @@ for (const { path } of pages) {
 for (const [t, ps] of titles) if (ps.length > 1) bad(ps.join(', '), `share the title "${t}"`);
 for (const [d, ps] of descs) if (ps.length > 1) bad(ps.join(', '), 'share a description');
 
+
+// headers: every path must get exactly ONE Content-Security-Policy. Two matching rules that both set it send two policies, a browser applies both, and the stricter wins:
+// the home page's live counter was blocked in production that way once. This reads the _headers file the way Cloudflare matches it (":name" is one segment, "*" is the rest).
+{
+  const rules = []; let cur = null;
+  for (const line of readFileSync(join(root, '_headers'), 'utf8').split('\n')) {
+    if (!line.trim() || line.trim().startsWith('#')) continue;
+    if (!line.startsWith(' ')) { cur = { pattern: line.trim(), csp: null }; rules.push(cur); }
+    else if (cur && /^\s*Content-Security-Policy:/i.test(line)) cur.csp = line.trim();
+  }
+  const toRe = (p) => new RegExp('^' + p.split('/').map((seg) => (seg.startsWith(':') ? '[^/]+' : seg.split('*').map((x) => x.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*'))).join('/') + '$');
+  const paths = new Set(['/nope', '/x/y', '/style.css', '/fonts/fonts.css', ...pages.map((p) => p.path)]);
+  for (const path of paths) {
+    const hits = rules.filter((r) => r.csp && toRe(r.pattern).test(path));
+    if (hits.length !== 1) bad('_headers', `${path} gets ${hits.length} Content-Security-Policy headers (want exactly 1)`);
+    else {
+      const wantSelf = path === '/';
+      const hasSelf = /connect-src 'self'/.test(hits[0].csp), hasNone = /connect-src 'none'/.test(hits[0].csp);
+      if (wantSelf && !hasSelf) bad('_headers', `${path} must allow connect-src 'self' for the live counter`);
+      if (!wantSelf && !hasNone) bad('_headers', `${path} must forbid requests (connect-src 'none')`);
+    }
+  }
+}
+
 // sitemap
 const sm = readFileSync(join(root, 'sitemap.xml'), 'utf8');
 const locs = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);

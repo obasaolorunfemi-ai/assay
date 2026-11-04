@@ -1,5 +1,5 @@
+# Headers that every path gets. The Content-Security-Policy is NOT here, on purpose: see below.
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
   Strict-Transport-Security: max-age=63072000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
@@ -8,9 +8,17 @@
   Cross-Origin-Resource-Policy: same-origin
   X-Frame-Options: DENY
 
+# One Content-Security-Policy per path, in rules that do not overlap. Two matching rules that both set it would send TWO policies, and a browser applies both, so the
+# stricter one wins. (An earlier version used a "! Content-Security-Policy" detach for the home page: it worked locally and sent two policies in production.)
+# The home page may ask its own site for the live counter. Every other page may not make any request at all, which is what the demo's "nothing leaves this page" rests on.
 /
-  ! Content-Security-Policy
   Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
+
+/:a
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
+
+/:a/*
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
 
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable
