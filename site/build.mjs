@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
+import { ILL, animCss } from './illustrations.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -220,7 +221,8 @@ const foot = `<footer class="site-foot"><div class="col"><div class="foot-grid">
 </div><p class="foot-note">Assay ${esc(pkg.version)}, free and open source (MIT). Lodestone keeps the AI call working; Assay checks what came back. The examples on this site are produced by running the library when the site is built.</p></div></footer>`;
 
 const sums = createHash('sha256');
-for (const f of ['style.css', 'theme.js', 'menu.js', 'demo.js']) sums.update(readFileSync(join(src, f)));
+for (const f of ['style.css', 'theme.js', 'menu.js', 'demo.js', 'anim.js']) sums.update(readFileSync(join(src, f)));
+sums.update(animCss);
 const V8 = sums.digest('hex').slice(0, 8);
 
 function page({ path, key, title, desc, body, scripts = '', noindex = false, ld = '' }) {
@@ -263,14 +265,14 @@ const outputBlock = (o) => `<div class="out ${o.cls}"><strong>${esc(o.head)}</st
 
 const story = (e, title, said) => `<article class="card" id="ex-${slug(e.name)}"><h3>${title}</h3><p class="what">${said}</p><div class="out ${e.out.cls}"><strong>Assay says</strong><p>${esc(e.out.text.replace(/^[a-z]+(-[a-z]+)+: /, '').replace(/^[a-z]/, (c) => c.toUpperCase()))}</p></div><details><summary>Show the code</summary><pre><code>${esc(e.code)}</code></pre><p class="imp">${esc(`import … from '${importPath(e.sub)}'`)}</p></details></article>`;
 const ex = (n) => EXAMPLES.find((e) => e.name === n);
-const PICK = [
-  ['Is this paper real?', 'Citations', 'Looks it up online'],
-  ['Is this quote really in the source?', 'Quotes', 'Nothing leaves your device'],
-  ['Did I make up a number?', 'Figures', 'Nothing leaves your device'],
-  ['Is each claim backed by a source good enough to state it?', 'Gate', 'Nothing leaves your device'],
-  ['Does every number in the draft trace to a fact I approved?', 'Grounding', 'Nothing leaves your device'],
-  ['Is this figure right for that year?', 'Values', 'Looks it up online'],
-  ['Does this link still work?', 'Links', 'Looks it up online, from a server'],
+const CHECK_CARDS = [
+  ['citations', 'Citations', 'Is this paper real?', 'Assay looks each citation up in public records of papers and books, and says found, look again, or not found. It also checks that the link points to that paper.', 'Looks it up online'],
+  ['quotes', 'Quotes', 'Is this quote really in the source?', 'It searches your source text for the exact sentence. It forgives curly quotes, dashes and capital letters, never different words.', 'Stays on your device'],
+  ['figures', 'Figures', 'Did I make up a number?', 'It finds every number in the draft and checks that you supplied the same number in your own materials. “three” matches 3.', 'Stays on your device'],
+  ['gate', 'Gate', 'Is this claim sourced well enough to say?', 'Sources are ranked from your own data down to news aggregators. Some claims, like a loss estimate, need a specialist source. With only press coverage behind it, the gate drops the claim.', 'Stays on your device'],
+  ['grounding', 'Grounding', 'Does every number trace to a fact I approved?', 'Each line carries a tag naming the approved fact it came from. Assay checks that the fact exists and that the line states the same figure.', 'Stays on your device'],
+  ['values', 'Values', 'Is this figure right for that year?', 'It asks the source’s own data, such as the World Bank or the IMF, for that exact year and unit. A nearby year never counts as a match.', 'Looks it up online'],
+  ['links', 'Links', 'Does this link work, and is it safe to open?', 'From a server only. It checks the page is there, and refuses addresses that point into your own network without making any request.', 'Makes web requests, server only'],
 ];
 const home = `<main id="main">
 <section class="col hero">
@@ -280,6 +282,15 @@ const home = `<main id="main">
 <div class="actions"><a class="pill solid" href="/try/">Try it now</a><a class="pill" href="/start/">Add it to your app</a></div>
 <p class="tag">The checks that use your own text run in your browser and send nothing anywhere.</p>
 </section>
+<section class="band" id="checks"><div class="col">
+<div class="sec-head"><div><h2>Seven checks, each for one job</h2>
+<p class="sub">They answer different questions, so each is its own check with its own import. Use the one that fits; they are not meant to run all at once. Each picture loops to show what the check does.</p></div>
+<button type="button" class="pill" id="motion" aria-pressed="false">Pause animations</button></div>
+<div class="checks">
+${CHECK_CARDS.map(([key, name, q, text, net]) => `<article class="check" id="check-${key}"><div class="stage">${ILL[key]}</div><div class="words"><span class="name">${name}</span><h3>${q}</h3><p>${text}</p><span class="where ${net ? 'net' : 'local'}">${net}</span></div></article>`).join('\n')}
+</div>
+<p class="actions"><a class="pill" href="/checks/">Every option and message, in the reference</a></p>
+</div></section>
 <section class="band"><div class="col">
 <h2>Where AI goes wrong</h2>
 <p class="sub">The last four are real runs: Assay checked the text described, when this page was built. Open “Show the code” to see the call.</p>
@@ -290,13 +301,6 @@ ${story(ex('Figures'), 'A number from nowhere', `Your draft says “5,000 benefi
 ${story(ex('Grounding'), 'A number tied to the wrong fact', `The AI says the rate moved to ₦425 and tags the line as coming from a fact that says ₦645.19.`)}
 ${story(ex('Values'), 'The right source, the wrong year', `A draft says Nigerian remittances reached $25 billion in 2023. The World Bank figure for that year is about $19.5 billion.`)}
 </div>
-</div></section>
-<section class="band"><div class="col">
-<h2>Which check do you need?</h2>
-<p class="sub">Assay is seven separate checks, because they answer different questions. Use the one that fits. They are not meant to run all at once.</p>
-<div class="table-wrap"><table><thead><tr><th>The question</th><th>The check</th><th>Does it send anything out?</th></tr></thead><tbody>
-${PICK.map(([q, n, w]) => `<tr><td>${q}</td><td><a href="/checks/#${slug(n)}">${n}</a></td><td>${w}</td></tr>`).join('\n')}
-</tbody></table></div>
 </div></section>
 <section class="band"><div class="col">
 <h2>Why a red mark is worth believing</h2>
@@ -432,7 +436,7 @@ const put = (path, html) => {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, html);
 };
-put('', page({ path: '/', key: 'home', title: 'Assay: catch what AI made up', desc: 'Finds invented citations, quotes that are not in the source, and numbers nobody gave the AI. Free, open source, and the checks on your own text run in your browser.', body: home, ld: homeLd }));
+put('', page({ path: '/', key: 'home', title: 'Assay: catch what AI made up', desc: 'Finds invented citations, quotes that are not in the source, and numbers nobody gave the AI. Free, open source, and the checks on your own text run in your browser.', body: home, ld: homeLd, scripts: `\n<script src="/anim.js?v=${V8}" defer></script>` }));
 put('start', page({ path: '/start/', key: 'start', title: 'Get started · Assay', desc: 'Install Assay and run the check that fits: citations, quotes, figures, the source gate or grounding.', body: startPage }));
 put('paper', page({ path: '/paper/', key: 'paper', title: 'Technical paper · Assay', desc: 'How Assay works, how it fails and where it stops: design, self-healing, limits, security and changelog.', body: paperPage }));
 put('checks', page({ path: '/checks/', key: 'checks', title: 'Reference · Assay', desc: 'Citations, quotes, figures, the source-tier gate, grounding, values and links: what each compares the text with, every option and every status.', body: checksPage }));
@@ -443,7 +447,8 @@ put('security', page({ path: '/security/', key: 'security', title: 'Security · 
 put('changelog', page({ path: '/changelog/', key: 'changelog', title: 'Changelog · Assay', desc: 'What changed in each Assay release.', body: changelogPage }));
 put('404', page({ path: '404', key: '', title: 'Not found · Assay', desc: 'Page not found.', body: notFound, noindex: true }));
 
-for (const f of ['style.css', 'theme.js', 'menu.js', 'demo.js', 'favicon.svg', '_headers', 'robots.txt']) copyFileSync(join(src, f), join(out, f));
+for (const f of ['theme.js', 'menu.js', 'demo.js', 'anim.js', 'favicon.svg', '_headers', 'robots.txt']) copyFileSync(join(src, f), join(out, f));
+writeFileSync(join(out, 'style.css'), readFileSync(join(src, 'style.css'), 'utf8') + '\n' + animCss);
 cpSync(join(src, 'fonts'), join(out, 'fonts'), { recursive: true });
 
 // The in-browser tools import the real offline modules. Copy exactly those and what they import.

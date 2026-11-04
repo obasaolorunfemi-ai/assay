@@ -177,3 +177,61 @@ details[open] summary { margin-bottom: .5rem; }
 .parts span { color: var(--ink-2); font-size: .95rem; }
 .prose pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
 .prose pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* the animated scenes (illustrations.mjs); their keyframes are generated into this sheet by the build */
+.ill { width: 100%; height: auto; display: block; }
+.ill .pane { fill: var(--paper); stroke: var(--rule); stroke-width: 1.5; }
+.ill .pane2 { fill: var(--panel); stroke: var(--rule); stroke-width: 1.5; }
+.ill .chip { fill: var(--surface); stroke: var(--rule); stroke-width: 1.5; }
+.ill .ln { fill: var(--rule); }
+.ill .axis { stroke: var(--ink-3); stroke-width: 1.5; fill: none; }
+.ill .bar { fill: var(--rule); }
+.ill .bar.hot { fill: var(--ac); }
+.ill .tx { font: 500 11.5px var(--f-body); fill: var(--ink-2); }
+.ill .tx.b { font-weight: 700; fill: var(--ink); }
+.ill .tx.s { font-size: 9.8px; fill: var(--ink-3); }
+.ill .tx.c { text-anchor: middle; }
+.ill .line { fill: none; stroke: var(--ac); stroke-width: 2.4; stroke-linecap: round; }
+.ill .line.bad { stroke: var(--bad); }
+.ill .okbg { fill: var(--good-wash); } .ill .oktx { fill: var(--good) !important; font-weight: 700; }
+.ill .badbg { fill: var(--bad-wash); } .ill .badtx { fill: var(--bad) !important; font-weight: 700; }
+.ill .alert { fill: none; stroke: var(--bad); stroke-width: 2; }
+.ill .zone { fill: none; stroke: var(--ac); stroke-width: 1.8; stroke-dasharray: 5 4; }
+.ill .token { fill: var(--ac); }
+.ill .scan { fill: var(--ac); fill-opacity: .28; stroke: var(--ac); stroke-width: 1.5; opacity: 0; }
+.ill .globe { fill: none; stroke: var(--ink-3); stroke-width: 1.6; }
+.ill .shield { fill: var(--bad-wash); stroke: var(--bad); stroke-width: 2; }
+.ill .hot { fill: var(--ink-2); }
+
+.ill .pop, .ill .draw, .ill .grow, .ill .scan, .ill .bump, .ill .hot { animation-duration: 9s; animation-iteration-count: infinite; animation-fill-mode: both; animation-timing-function: ease-out; }
+.ill .pop, .ill .grow, .ill .bump { transform-box: fill-box; transform-origin: center; }
+.ill .grow { transform-origin: bottom; }
+.ill .draw { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.ill .scan { animation-name: scan; }
+.ill .grow { animation-name: grow; }
+.ill .bump { animation-name: bump; }
+.ill .hot { animation-name: hot; }
+@keyframes scan { 0%, 8% { transform: translateY(0); opacity: 0; } 12% { opacity: 1; } 50% { transform: translateY(116px); opacity: 1; } 58%, 100% { transform: translateY(116px); opacity: 0; } }
+@keyframes grow { 0%, 4% { transform: scaleY(.04); } 24%, 90% { transform: scaleY(1); } 98%, 100% { transform: scaleY(1); opacity: 0; } }
+@keyframes bump { 0%, 12% { transform: translateY(0); } 20% { transform: translateY(-16px); } 27% { transform: translateY(0); } 34% { transform: translateY(-16px); } 41%, 100% { transform: translateY(0); } }
+@keyframes hot { 0%, 28% { fill: var(--ink-2); font-weight: 500; } 36%, 90% { fill: var(--bad); font-weight: 700; } 98%, 100% { fill: var(--ink-2); font-weight: 500; } }
+/* before a scene is on screen it waits at its first frame; without JavaScript it simply plays */
+.js .ill:not(.in) * { animation-play-state: paused !important; }
+.motion-off .ill *, .motion-off .ill { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .ill *, .ill { animation: none !important; } }
+.ill .scan { opacity: 0; }
+.motion-off .ill .hot, .ill .hot { }
+
+.checks { display: grid; gap: clamp(.8rem, 1.6vw, 1.3rem); grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
+.check { border: 1px solid var(--rule); border-radius: 18px; background: var(--surface); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.check .stage { background: var(--panel); padding: clamp(.7rem, 1.2vw, 1.1rem); border-bottom: 1px solid var(--rule-soft); }
+.check .words { padding: clamp(1rem, 1.4vw, 1.4rem); display: flex; flex-direction: column; gap: .45rem; }
+.check h3 { font-size: 1.4rem; line-height: 1.15; }
+.check p { margin: 0; color: var(--ink-2); font-size: .98rem; }
+.check .where { display: inline-flex; align-self: flex-start; align-items: center; gap: .4rem; padding: .1rem .6rem; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+.check .where.local { background: var(--good-wash); color: var(--good); }
+.check .where.net { background: var(--warn-wash); color: var(--warn); }
+.check .name { font-size: .85rem; font-weight: 600; color: var(--ink-3); }
+.sec-head { display: flex; flex-wrap: wrap; gap: .8rem 1.5rem; justify-content: space-between; align-items: flex-end; margin-bottom: 1.2rem; }
+.sec-head h2 { margin: 0 !important; }
+.sec-head .sub { margin: .5rem 0 0; }
