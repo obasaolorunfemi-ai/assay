@@ -31,4 +31,6 @@ jobs:
       - name: Tag matches package.json
         run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
       - run: npm run build
+      - name: Every entry point loads from the built package
+        run: node scripts/smoke.mjs
       - run: npm publish --access public

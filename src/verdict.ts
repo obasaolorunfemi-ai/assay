@@ -1,5 +1,6 @@
 import type { Bucket, Citation, Status, Summary, Verdict } from './types.js';
 import { DOI_PATTERN } from './links.js';
+import { summarizeBuckets } from './summary.js';
 
 /** ok = confirmed. check = found with something to look at, or cannot be confirmed (approximate, no title, offline). failed = no such work, the wrong work, or a link to something else. */
 export function bucketOf(status: Status, exact: boolean | undefined, notes: string[]): Bucket {
@@ -41,19 +42,7 @@ export function suggestedDoiOf(doi: string | undefined): string | undefined {
 }
 
 export function summarize(verdicts: Pick<Verdict, 'bucket'>[]): Summary {
-  const live = verdicts.filter((v) => v.bucket !== 'skip');
-  const verified = live.filter((v) => v.bucket === 'ok').length;
-  const check = live.filter((v) => v.bucket === 'check').length;
-  const failed = live.filter((v) => v.bucket === 'failed').length;
-  const bits = [`Citations: ${live.length}`];
-  if (verified) bits.push(`✓ ${verified} verified`);
-  if (check) bits.push(`≈ ${check} to check`);
-  if (failed) bits.push(`✕ ${failed} not verified`);
-  return {
-    total: live.length, verified, check, failed,
-    level: failed ? 'bad' : check ? 'warn' : 'good',
-    text: bits.join(' · ') + (failed ? ' — do not rely on them.' : ''),
-  };
+  return summarizeBuckets(verdicts.map((v) => v.bucket), { label: 'Citations', ok: 'verified', check: 'to check', failed: 'not verified', failedTail: ' — do not rely on them.' });
 }
 
 export type { Citation };

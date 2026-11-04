@@ -1,7 +1,7 @@
 {
   "name": "@extrafemi-ai/assay",
-  "version": "0.1.0",
-  "description": "Checks the citations in AI-written text against CrossRef, OpenAlex, Open Library and the DOI registries, so an invented paper or a made-up DOI is caught: a verdict for each citation, a plain-words summary, and a way to mark or remove the ones that failed.",
+  "version": "0.2.0",
+  "description": "Checks AI-written text against evidence: citations against CrossRef, OpenAlex and the DOI registries; quotes against their source text; figures against the materials you supplied. Each check says what it checked against, in plain words.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -19,23 +19,59 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./quotes": {
+      "types": "./dist/quotes.d.ts",
+      "import": "./dist/quotes.js"
+    },
+    "./figures": {
+      "types": "./dist/figures.d.ts",
+      "import": "./dist/figures.js"
     }
   },
-  "files": ["dist", "README.md", "CHANGELOG.md", "SECURITY.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
   "sideEffects": false,
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "corpus": "npm run build && node scripts/corpus.mjs",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+    "prepublishOnly": "npm run typecheck && npm test && npm run smoke",
+    "smoke": "npm run build && node scripts/smoke.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.6.0",
     "vitest": "^4.1.12"
   },
-  "keywords": ["citations", "references", "hallucination", "fabrication", "llm", "ai", "doi", "crossref", "openalex", "verification", "fact-checking"],
-  "publishConfig": { "access": "public", "provenance": true }
+  "keywords": [
+    "ai",
+    "citations",
+    "crossref",
+    "doi",
+    "fabrication",
+    "fact-checking",
+    "figures",
+    "grounding",
+    "guardrails",
+    "hallucination",
+    "llm",
+    "openalex",
+    "quotes",
+    "references",
+    "verification"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
 }

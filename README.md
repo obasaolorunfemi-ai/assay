@@ -1,6 +1,23 @@
 # Assay
 
-Checks the citations in AI-written text, so an invented paper or a made-up DOI is caught before anyone relies on it.
+Checks AI-written text against evidence, so an invented paper, a made-up quote or a number nobody supplied is caught before anyone relies on it.
+
+Assay is **a set of separate checks, not one**. Each compares the text with a different thing, so each is its own module with its own
+entry point, and you use only the ones your scenario needs.
+
+| check | compares the text with | network | import |
+|---|---|---|---|
+| **citations** | public records of papers and books (CrossRef, OpenAlex, Open Library, the DOI registries) | yes | `@extrafemi-ai/assay` |
+| **quotes** | the source text you supply: is this sentence really in it? | **no** | `@extrafemi-ai/assay/quotes` |
+| **figures** | the materials you supply: does every number come from them? | **no** | `@extrafemi-ai/assay/figures` |
+
+The two that check against *your own material* never touch the network, and a test enforces that, so they are safe to run on private text
+such as a CV. Only citations sends anything out (the author, title, year and link of each citation, never the surrounding text).
+All three report the same way: a verdict for each item with a plain-words `message`, a one-line `summary`, and `ok`.
+
+More checks are planned as separate modules (source tiers, values against a source's data, grounding). Each will say what it compares against.
+
+## Citations
 
 AI models cite with complete confidence and are often wrong. In a test of three replies from free models, they wrote DOIs that
 do not exist, DOIs that belong to unrelated papers (a Coase 1960 citation pointed at a 1963 book review), real authors with titles
@@ -76,9 +93,53 @@ Each verdict has `status` (`found`, `badlink`, `mismatch`, `notfound`, `approx-o
 
 `message`, `match.title` and the citation's own fields contain text from the web or from a model. Use `textContent`, or `escapeHtml()` (exported) before putting any of it in HTML.
 
+## Quotes
+
+A model asked to back a claim with "an exact quote from the posting" can invent the quote. `checkQuote` checks it against the source text.
+
+```ts
+import { checkQuote, checkQuotes, verifyQuote } from '@extrafemi-ai/assay/quotes';
+
+verifyQuote(jobAd, 'Visa sponsorship is available for this role');   // true or false
+checkQuote(jobAd, 'Relocation is available for all staff');          // { status: 'missing', bucket: 'failed', message: '…' }
+checkQuotes([{ id: 'a', quote, source: jobAd }, …]).summary.text;     // "Quotes: 3 · ✓ 2 found · ✕ 1 not found — …"
+```
+
+It forgives typography only (whitespace, curly quotes, dashes, case) and never words. The quote must start and end at a word boundary, and a
+quote under 12 characters is refused (`"sponsorship"` would match almost any posting; set `minChars` to change it).
+Statuses: `found`, `missing`, `too-short`, `empty`.
+
+## Figures
+
+An invented "5,000 beneficiaries" or "a 40% increase" reads as plausible and nobody checks it. `checkFigures` finds every number in a draft
+and checks that the same value appears in the materials you supplied (a CV, a brief, a call for proposals).
+
+```ts
+import { checkFigures } from '@extrafemi-ai/assay/figures';
+
+const r = checkFigures(draft, [cv, brief, call], { ignore: [/\[ADD:[^\]]*\]/gi] });
+r.summary.text;   // "Figures: 3 · ✓ 2 supported · ✕ 1 not in your materials — check them before using the text."
+r.verdicts.filter((v) => !v.supported).map((v) => v.figure.raw);   // ["5,000"]
+```
+
+It reads numbers in any notation (`5,000`, `12.5`, `40%`, `40 percent`, `50k`, `1.5m`, `2 million`, `three`, `twenty-five`), so "3" in your
+brief supports "three" in the draft, and "1.5m" supports "1,500,000". A percentage and a plain number are different figures: a "40 women" in
+a CV does not support an invented "40%" (`kinds: false` matches on value alone). `tolerance` (default 0, exact) lets values within a share of
+each other match. `ignore` removes text that is not a claim, such as your own placeholder syntax. One verdict per distinct figure.
+Left out on purpose: the word "one", ordinals ("40th"), list numbering, and digits glued to letters (`B2B`, `Q3`).
+
+`@extrafemi-ai/assay/figures` also exports `extractFigures`, `extractYears`, and `evalFormula`: arithmetic over named values
+(`"(c3-c7)/c7*100"`) evaluated without `eval`, which throws on anything that is not arithmetic, on an unknown name and on division by zero.
+
 ## What it cannot do
 
 Read this before you trust a green tick.
+
+**Quotes:** a quote that is really there can still be out of context ("is available" cut from "is available only to staff"). That is for a person to judge. An elided quote ("A … B") is not matched.
+
+**Figures:** it checks that a number was supplied, not what it is *about*: "40 women" in your materials supports "40 women" and also "40 men". It does not catch an invented name, only numbers. Currency symbols are not compared.
+
+**Citations:**
 
 - **It proves a source exists, not that it says what the sentence claims.** A verified citation can still be attached to a false claim, and a fabricated one can be written to match a real record. The messages say "a record exists", not "this is correct".
 - **Coverage has gaps.** Books, reports, chapters, grey literature and non-English work are thin in these indexes. A real work can come

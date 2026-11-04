@@ -2,6 +2,17 @@
 
 Versions before 1.0 may change between minor releases; each change that could break a caller is marked **breaking**.
 
+## 0.2.0
+
+Assay becomes a set of separate checks, each with its own entry point and each saying what it compares against.
+
+- **`@extrafemi-ai/assay/quotes`** (ported from KeyStone): `checkQuote`, `verifyQuote`, `checkQuotes`. Is this sentence really in the source text? Forgives whitespace, quote marks, dashes and case, never words. New: the quote must start and end at a word boundary, so "ship is available" does not match inside "sponsorship is available".
+- **`@extrafemi-ai/assay/figures`** (ported from KeyStone's invented-figure guard and Content Engine's number code): `checkFigures`, `findUnsupportedFigures`, `extractFigures`, `extractYears`, `evalFormula`, `looksLikeFormula`. Reads numbers in any notation. New: **a percentage and a plain number are different figures** by default (a "40 women" in a CV no longer supports an invented "40%"; `kinds: false` restores value-only matching), a `tolerance` option, an `ignore` option for your own placeholder syntax, and the position of each figure. A list marker no longer glues the lines either side of it into one number.
+- Both are **offline**: no network, no dependencies, and a test fails if they ever import anything that could reach one.
+- `evalFormula` accepts any variable name, not only `c3`; refuses expressions over 200 tokens or 50 deep; does not read inherited properties such as `constructor` as values.
+- Checked against the originals: 3,000 generated texts extract the same figures as KeyStone's guard; the quote check accepts everything KeyStone's does.
+- A smoke test loads every entry point from the built package, in CI and before a release.
+
 ## 0.1.0
 
 First release, extracted from Whetstone's citation checker.
