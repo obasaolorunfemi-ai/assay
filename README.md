@@ -12,13 +12,14 @@ entry point, and you use only the ones your scenario needs.
 | **figures** | the materials you supply: does every number come from them? | **no** | `@extrafemi-ai/assay/figures` |
 | **gate** | a policy about sources: is each claim sourced well enough to be stated? | **no** | `@extrafemi-ai/assay/gate` |
 | **grounding** | a list of approved claims: does every figure in a draft trace to one, and match it? | **no** | `@extrafemi-ai/assay/grounding` |
+| **links** | the live web: is the page there? (server-side only) | yes | `@extrafemi-ai/assay/links` |
 | **values** | a source's own data (World Bank, IMF, or figures you seeded): does the number match, for that year? | yes | `@extrafemi-ai/assay/values` |
 
 The ones that check against *your own material or policy* never touch the network, and a test enforces that, so they are safe to run on private text
 such as a CV. Only citations sends anything out (the author, title, year and link of each citation, never the surrounding text).
 All three report the same way: a verdict for each item with a plain-words `message`, a one-line `summary`, and `ok`.
 
-One more check is planned as its own module: link liveness (server-only). Each check says what it compares against.
+Each check says what it compares against.
 
 ## Citations
 
@@ -200,6 +201,30 @@ Violation codes: `untagged-figure`, `unknown-claim`, `logic-figure`, `figure-mis
 not a way to carry a figure unchecked (the original let it pass). A calculation given only as a list of claims (`[[calc: c1,c2]]`) names its inputs but cannot be re-run: it is
 traced and reported in `warnings`. This checks that a figure is *traceable and matches*, not that the claim is true; when a claim carries several numbers it cannot tell which one the line means
 (use `values` for the period). Offline.
+
+## Links
+
+Is the page really there? **Server-side only** (Node, Bun, Deno): it makes requests, so it is deliberately absent from browser bundles (`"browser": null` in the package's `exports`).
+
+```ts
+import { createLinkChecker } from '@extrafemi-ai/assay/links';
+
+const links = createLinkChecker();
+const report = await links.check(['https://example.com/paper.pdf', 'http://169.254.169.254/latest/meta-data/']);
+report.verdicts.map((v) => [v.url, v.status]);   // [['…/paper.pdf', 'live'], ['http://169.254.169.254/…', 'unsafe']]
+report.summary.text;                              // "Links: 2 · ✓ 1 live · ✕ 1 broken or refused — do not present them as sources."
+```
+
+Statuses: `live`, `broken` (404 or 410: the page is not there), `blocked` (401, 403, 429, 5xx: a site refusing or struggling, **never** treated as broken), `unreachable` (could not connect; says nothing
+about the page), `soft404` (it answered, but landed on the home page or a page titled "not found"), `unsafe` (refused without a request), `limit`. `recheck(report)` checks again what could not be settled.
+
+**This is the module that can hurt you**, because it fetches URLs that came out of AI text, which is shaped by whoever wrote the prompt. A crafted link must never make your server reach your own
+network or your cloud's metadata service. See [SECURITY](SECURITY.md) for what it guarantees and what it does not. In short: the address that is validated is the address that is connected to (so a name
+that answers "public" to a check and "private" to the connection is refused); every redirect hop is re-checked from the URL down; only http and https on ports 80 and 443, no credentials, no `localhost`, no
+`.internal` or single-label names, and only public IP addresses (including every IPv6 way of writing a private IPv4 one). `checkUrl()` and `isSafeAddress()` are exported if you want the rules on their own.
+
+Bounded: 5 seconds per request, 5 redirects, 2 requests at a time to any one host, 25 URLs per call, and only the first 24,000 characters of a page are ever read. A host that fails repeatedly, or sends
+`Retry-After`, is left alone for a while. The default `User-Agent` says what this is; some publishers block anything that is not a browser, which comes back as `blocked`.
 
 ## Quotes
 

@@ -34,6 +34,25 @@ Assay sends requests to free, shared services on behalf of whoever calls it. `ma
 
 Only **citations** and **values** touch the network. `quotes`, `figures`, `gate` and `grounding` compare text with material you supply and have no network access: a test fails if they, or anything they import, could reach one. That makes them the ones to use on private text. They also take text of any size without a pattern that backtracks badly (a megabyte of digits, brackets and repeated words each ran in milliseconds), and `evalFormula` is bounded in length and nesting and never uses `eval` or `Function`.
 
+## The link checker (`@extrafemi-ai/assay/links`)
+
+This is the one module that makes requests to addresses it did not choose, so read this before you use it.
+
+**What it guarantees**
+- **The checked address is the connected address.** Every address a host name resolves to is validated inside the DNS lookup the connection itself uses. There is no check followed by a second resolution, so a name that answers "public" to a check and "private" to the connection (DNS rebinding) is refused. A name is refused if *any* address it resolves to is not public.
+- **Every redirect hop is re-checked**, from the URL down, before it is followed. Redirects are followed by hand, up to 5.
+- **Only public addresses.** IPv4: loopback, private, link-local (which includes the cloud metadata address), carrier-grade NAT, documentation, benchmarking, multicast and reserved ranges are refused. IPv6: only global unicast is allowed, and every form that wraps an IPv4 address (`::ffff:7f00:1`, NAT64, 6to4, the deprecated `::a.b.c.d`) is judged by the IPv4 address inside it; Teredo, unique-local, link-local and documentation ranges are refused. Disguised forms (`2130706433`, `0x7f.1`, octal) are refused. The IPv4 ranges are tested against Node's own `net.BlockList`.
+- **Only `http` and `https`, ports 80 and 443 by default, no credentials in the URL, and no `localhost`, `.local`, `.internal`, `.lan` or single-label names.**
+- **Bounded.** 5 seconds per request, 5 redirects, 2 concurrent requests per host, 25 URLs per call, and only the first 24,000 characters of a page are ever read (the connection is then dropped). A flood of links cannot become a flood of requests.
+- **Fails closed.** Anything it cannot parse is refused. A refused URL is never requested.
+
+**What it does not do**
+- It does not stop a **public** address from being fetched. If you point it at text from an attacker, the attacker can make your server request any public page (and learn, from the verdict, whether it is there). Do not return the raw status of arbitrary URLs to an untrusted caller without rate limiting them.
+- It checks that a page is *there*, not that it says what a citation claims.
+- It does not guard the network around it: egress filtering on your host is still the right second layer. If your platform can reach private networks, also block them at the platform.
+- `unsafeOverrides` exists for tests and removes these rules. Never use it with links from a model or a user.
+- Redirect targets and response headers come from the other server and are treated as untrusted: the checker reads only the status, `Location` and `Retry-After`.
+
 ## What it does with untrusted text
 
 The text it reads is usually written by an AI model, so it treats it as hostile. It only reads author, title, year, venue and link out

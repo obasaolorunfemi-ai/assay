@@ -39,6 +39,11 @@
     "./grounding": {
       "types": "./dist/grounding.d.ts",
       "import": "./dist/grounding.js"
+    },
+    "./links": {
+      "browser": null,
+      "types": "./dist/liveness.d.ts",
+      "import": "./dist/liveness.js"
     }
   },
   "files": [
