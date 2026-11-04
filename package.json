@@ -35,6 +35,10 @@
     "./values": {
       "types": "./dist/values.d.ts",
       "import": "./dist/values.js"
+    },
+    "./grounding": {
+      "types": "./dist/grounding.d.ts",
+      "import": "./dist/grounding.js"
     }
   },
   "files": [

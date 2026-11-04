@@ -6,8 +6,8 @@ import type { Bucket, Summary } from './types.js';
 import { extractFigures, type ExtractOptions, type Figure } from './numbers.js';
 import { summarizeBuckets } from './summary.js';
 
-export { extractFigures, extractYears, evalFormula, looksLikeFormula } from './numbers.js';
-export type { ExtractOptions, Figure } from './numbers.js';
+export { extractFigures, extractYears, evalFormula, looksLikeFormula, extractTypedNumbers, extractPlainNumbers, extractScaledNumbers, extractPercents, hasAnyNumber, numbersOverlap } from './numbers.js';
+export type { ExtractOptions, Figure, TypedNumbers } from './numbers.js';
 
 export interface FigureOptions extends ExtractOptions {
   /** Require a percentage to be supported by a percentage, and a plain number by a plain number. Default true: a "40 women" in a CV must not support an invented "40%". Turn off to match on value alone. */

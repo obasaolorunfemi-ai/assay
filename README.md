@@ -11,13 +11,14 @@ entry point, and you use only the ones your scenario needs.
 | **quotes** | the source text you supply: is this sentence really in it? | **no** | `@extrafemi-ai/assay/quotes` |
 | **figures** | the materials you supply: does every number come from them? | **no** | `@extrafemi-ai/assay/figures` |
 | **gate** | a policy about sources: is each claim sourced well enough to be stated? | **no** | `@extrafemi-ai/assay/gate` |
+| **grounding** | a list of approved claims: does every figure in a draft trace to one, and match it? | **no** | `@extrafemi-ai/assay/grounding` |
 | **values** | a source's own data (World Bank, IMF, or figures you seeded): does the number match, for that year? | yes | `@extrafemi-ai/assay/values` |
 
 The ones that check against *your own material or policy* never touch the network, and a test enforces that, so they are safe to run on private text
 such as a CV. Only citations sends anything out (the author, title, year and link of each citation, never the surrounding text).
 All three report the same way: a verdict for each item with a plain-words `message`, a one-line `summary`, and `ok`.
 
-More checks are planned as separate modules (grounding, link liveness). Each will say what it compares against.
+One more check is planned as its own module: link liveness (server-only). Each check says what it compares against.
 
 ## Citations
 
@@ -173,6 +174,32 @@ publication (a central bank's report) where no API exists. Every seeded figure i
 At best it says `plausible`, which is a `check`, never verification. Values are self-healing like citations: a changed reply shape or an error body is `unavailable`, never "no
 data" or a mismatch; a throttled source is left alone and its `Retry-After` believed; an earlier series is served (`stale`) when the source is down; and a source's "mismatch"
 is held back unless it first returns a known figure correctly (`health()` reports this).
+
+## Grounding
+
+A model that tags its own sentence `[[c3]]` has proved nothing until something checks that c3 exists, that the sentence's *own* figure matches c3's, and that a line
+carrying a number carries a tag that can justify one. `checkGrounding` does that against the claims you approved for the draft.
+
+```ts
+import { checkGrounding, stripTags } from '@extrafemi-ai/assay/grounding';
+
+const claims = [{ ref: 1, text: 'The official rate averaged ₦645.19 in 2023.' }];
+const r = checkGrounding('The rate moved to ₦425 in 2023 [[c1]].', claims);
+r.ok;                       // false
+r.violations[0];            // { code: 'figure-mismatch', reason: "states a figure that doesn't match c1's stated figure: possible mis-citation", … }
+r.summary.text;             // "Lines: 1 · ✕ 1 not grounded — do not publish the flagged lines as they stand."
+stripTags(draft);           // the published text, tags removed
+```
+
+Tags: `[[c3]]` or `[[c3,c7]]` cite approved claims; `[[calc: c3*0.15]]` is a calculation over claims (re-run, and the result must match the line);
+`[[logic]]` is reasoning and **can never justify a number**; `[[eg]]` marks an invented figure in a worked example; `[verify: …]` is a note for the editor. **The syntax is a parameter**
+(`tags: { open: '{{', close: '}}', claim: 's', … }`): `[[c3]]` is only the default. Every factual line is checked, including bullets, quotes and table rows. Headings, code fences and
+everything under `## Sources` are not. Small counts with a unit ("12 years", "three postings") are figures too (`countUnits` adds yours).
+
+Violation codes: `untagged-figure`, `unknown-claim`, `logic-figure`, `figure-mismatch`, `calc-mismatch`, `calc-no-refs`, `calc-unreadable`. **A formula that cannot be read is a violation**,
+not a way to carry a figure unchecked (the original let it pass). A calculation given only as a list of claims (`[[calc: c1,c2]]`) names its inputs but cannot be re-run: it is
+traced and reported in `warnings`. This checks that a figure is *traceable and matches*, not that the claim is true; when a claim carries several numbers it cannot tell which one the line means
+(use `values` for the period). Offline.
 
 ## Quotes
 

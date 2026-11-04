@@ -48,3 +48,24 @@ describe('evalFormula cannot be used to run code', () => {
     expect(() => evalFormula('('.repeat(60) + '1' + ')'.repeat(60), {})).toThrow(/nested/);
   });
 });
+
+import { extractPercents, extractPlainNumbers, extractScaledNumbers, extractTypedNumbers, extractYears, hasAnyNumber, numbersOverlap } from '../src/numbers.js';
+
+describe('numbers by kind (Content Engine\'s cases)', () => {
+  it('finds every distinct 4-digit year', () => expect(extractYears('moved from ₦645 in 2023 to ₦1,518 in 2025')).toEqual([2023, 2025]));
+  it('plain numbers: rates and counts, but not a bare year or a scaled or percent figure', () => {
+    expect(extractPlainNumbers('moved from ₦645 to ₦1,518')).toEqual(expect.arrayContaining([645, 1518]));
+    expect(extractPlainNumbers('the rate averaged 645.19 in 2023')).not.toContain(2023);
+    expect(extractPlainNumbers('the fee was ₦1955')).toContain(1955);
+    expect(extractPlainNumbers('imports reached $14.06 billion')).not.toContain(14.06);
+    expect(extractPlainNumbers('the gap widened past 62.23%')).not.toContain(62.23);
+  });
+  it('scaled numbers expand billion, million and trillion', () => expect(extractScaledNumbers('$14.06 billion and $25.74bn')).toEqual([14.06e9, 25.74e9]));
+  it('percentages stay as percentages', () => expect(extractPercents('widened past 62.23%')).toEqual([62.23]));
+  it('overlap is within tolerance and never across kinds', () => {
+    expect(numbersOverlap(extractTypedNumbers('$14.06 billion'), extractTypedNumbers('about $14 billion'))).toBe(true);
+    expect(numbersOverlap(extractTypedNumbers('₦645'), extractTypedNumbers('$645 billion'))).toBe(false);
+    expect(numbersOverlap(extractTypedNumbers('425'), extractTypedNumbers('645'))).toBe(false);
+    expect(hasAnyNumber(extractTypedNumbers('no figures here'))).toBe(false);
+  });
+});

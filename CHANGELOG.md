@@ -16,6 +16,8 @@ Versions before 1.0 may change between minor releases; each change that could br
 
 **`@extrafemi-ai/assay/gate`** (ported from Content Engine's sourcing gate): `createGate(policy)`, `rules`, `defaultPolicy`, `summariseRecency`. The policy is data you pass in; Oneremit's own tier list stays in Content Engine. The Hormuz tracker's "one authority or two news sources" is a second rule on the same engine. Offline.
 
+**`@extrafemi-ai/assay/grounding`** (ported from Content Engine): `checkGrounding`, `stripTags`, `defaultTagFormat`. Every figure in a draft must trace to an approved claim, and match it. The tag syntax is configurable; violations have machine-readable codes; `[[logic]]` can never justify a figure. Stricter than the original in one place: an unreadable `[[calc: …]]` formula is a violation, not a pass. `figures` also exports Content Engine's typed number helpers (`extractTypedNumbers`, `numbersOverlap`, …). Offline.
+
 **`@extrafemi-ai/assay/values`** (ported from Content Engine's reconciliation and Fieldstone's value states): `createValues`, `reconcile`, `worldBank`, `imf`, `seededSource`, `worldBankUrlInfo`. Unit and exact-period discipline; a model cross-check hook that can contradict but never verify; self-healing like citations (shape checks, breaker with `Retry-After`, self-test before a mismatch stands, stale-while-error series, `health()`).
 
 ## 0.2.0

@@ -4,6 +4,7 @@ import * as quotes from '@extrafemi-ai/assay/quotes';
 import * as figures from '@extrafemi-ai/assay/figures';
 import * as gate from '@extrafemi-ai/assay/gate';
 import * as values from '@extrafemi-ai/assay/values';
+import * as grounding from '@extrafemi-ai/assay/grounding';
 
 const need = (cond, msg) => { if (!cond) { console.error('SMOKE FAILED:', msg); process.exit(1); } };
 
@@ -27,6 +28,9 @@ need(typeof values.createValues === 'function' && typeof values.reconcile === 'f
 const rv = values.reconcile({ value: 19.5e9, unit: 'USD', period: 2023, geo: 'NGA' }, { source: 'World Bank', indicatorId: 'X', unit: 'USD', points: [{ year: 2023, value: 19_549_549_365 }] });
 need(rv.state === 'verified', 'reconcile verifies a matching figure');
 need(values.reconcile({ value: 19.5e9, unit: 'USD', period: 2024, geo: 'NGA' }, { source: 'World Bank', indicatorId: 'X', unit: 'USD', points: [{ year: 2023, value: 19_549_549_365 }] }).state === 'period-unmatched', 'reconcile will not compare another year');
+need(typeof grounding.checkGrounding === 'function' && typeof grounding.stripTags === 'function', 'grounding exports');
+need(grounding.checkGrounding('The rate moved to ₦425 in 2023 [[c1]].', [{ ref: 1, text: 'The official rate averaged ₦645.19 in 2023.' }]).ok === false, 'grounding flags a figure that does not match its claim');
+need(grounding.checkGrounding('The rate averaged ₦645 in 2023 [[c1]].', [{ ref: 1, text: 'The official rate averaged ₦645.19 in 2023.' }]).ok === true, 'grounding passes a matching figure');
 const a = root.createAssay();
 need(['check', 'verify', 'recheck', 'repair', 'health', 'parse'].every((k) => typeof a[k] === 'function'), 'Assay methods');
 
