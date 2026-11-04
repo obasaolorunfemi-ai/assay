@@ -10,12 +10,13 @@ entry point, and you use only the ones your scenario needs.
 | **citations** | public records of papers and books (CrossRef, OpenAlex, Open Library, the DOI registries) | yes | `@extrafemi-ai/assay` |
 | **quotes** | the source text you supply: is this sentence really in it? | **no** | `@extrafemi-ai/assay/quotes` |
 | **figures** | the materials you supply: does every number come from them? | **no** | `@extrafemi-ai/assay/figures` |
+| **gate** | a policy about sources: is each claim sourced well enough to be stated? | **no** | `@extrafemi-ai/assay/gate` |
 
-The two that check against *your own material* never touch the network, and a test enforces that, so they are safe to run on private text
+The ones that check against *your own material or policy* never touch the network, and a test enforces that, so they are safe to run on private text
 such as a CV. Only citations sends anything out (the author, title, year and link of each citation, never the surrounding text).
 All three report the same way: a verdict for each item with a plain-words `message`, a one-line `summary`, and `ok`.
 
-More checks are planned as separate modules (source tiers, values against a source's data, grounding). Each will say what it compares against.
+More checks are planned as separate modules (values against a source's data, grounding, link liveness). Each will say what it compares against.
 
 ## Citations
 
@@ -92,6 +93,56 @@ Each verdict has `status` (`found`, `badlink`, `mismatch`, `notfound`, `approx-o
 ### Showing a verdict in a page
 
 `message`, `match.title` and the citation's own fields contain text from the web or from a model. Use `textContent`, or `escapeHtml()` (exported) before putting any of it in HTML.
+
+### Self-healing
+
+The sources are free and shared, and they break: OpenAlex now gives each address a small daily budget, and a service can change what it sends
+without any error. None of that may turn into an accusation against a citation, and none of it should need a person to notice.
+
+- **A changed or broken reply is an outage, not "no results".** A reply that is not the shape the source normally sends (an HTML error page,
+  a renamed field) makes the result `unavailable`.
+- **A source is tested before it is believed.** Before anyone is told "not found", each source that said so is asked for a work that certainly
+  exists. A source that cannot find it is broken without an error, and its answer is discarded (`unavailable`, with the reason). A passed test
+  is trusted for ten minutes, and citations checked at the same moment share one test.
+- **A failing source is left alone, then probed.** Three failures in a row, or a `Retry-After`, and it is not asked for a while (never longer
+  than 15 minutes, even if it asks for 20 hours); then one request is let through to see. Short waits are retried inside the call.
+- **An old answer beats "could not tell".** A conclusive result is kept for a week. If the sources are down when it expires, the earlier answer
+  is returned marked `stale: true`, with a message saying so.
+- **`recheck(report)`** checks again only what could not be settled (`retryable`), once the sources are back.
+- **`repair(text, report)`** fixes what needs no guessing: a real paper with an invented DOI gets the DOI of the record it matched, but only
+  after that new link is looked up and found to be the paper. It returns the new text and a list of every change. Everything else is left to you.
+- **`health()`** asks each source for its known work and says which are `healthy`, `degraded` (answering, but wrongly) or `down` (and when it will be tried again).
+
+What is remembered is about the citation *and its link*: a paper first cited with a good DOI never makes a later invented DOI pass.
+
+## Gate
+
+Is a claim sourced well enough to be stated? The gate checks claims against a **policy about their sources**: no network, no model. It judges how a
+claim is *sourced*, not whether it is true.
+
+```ts
+import { createGate, rules } from '@extrafemi-ai/assay/gate';
+
+const gate = createGate({
+  domains: { 'woodmac.com': 2, 'kpler.com': 2 },          // your own tier list (a small neutral default is built in)
+  firstParty: ['mybrand.example'],                         // always tier 0
+  rules: [rules.estimatesCausalLegalNeedSpecialist],       // or write your own
+});
+
+const report = gate.check([
+  { text: 'Delays cost traders an estimated $400m.', category: 'loss-estimate', sources: [{ url: 'https://reuters.com/x', date: '2026-01-01' }] },
+]);
+report.dropped[0].reason;   // "a loss estimate, causal or force-majeure claim needs one source at Tier 2 or better"
+report.summary.text;        // "Claims: 1 · ✕ 1 dropped — do not state the dropped ones as fact."
+report.unlistedDomains;     // domains the policy did not know: review them and add the good ones
+```
+
+Tiers: 0 your own first-party data, 1 an authority within its mandate, 2 a specialist, 3 the press, 4 an aggregator (it points to the real source;
+it is never the source). Outcomes: `pass`, `hold` (only backing is news under 24 hours old), `needs-corroboration`, `low-tier-only`, `no-source`, and `error`
+(a claim that could not be judged, which never passes). A **rule** says which claims need stronger backing (by label *or* by what the text reads like, so a
+wrong label does not dodge it) and what satisfies it, as "any of": `[{ atLeast: 1, tier: 1 }, { atLeast: 2, tier: 3 }]` is "one authority or two news
+sources", counted by *different sites*. Nobody can raise an unknown domain above tier 3 by saying so, including the claim's own author.
+A broken policy entry is dropped and reported in `gate.warnings` rather than taking the gate down. `summariseRecency()` lists sources older than two years.
 
 ## Quotes
 

@@ -2,6 +2,20 @@
 
 Versions before 1.0 may change between minor releases; each change that could break a caller is marked **breaking**.
 
+## 0.3.0
+
+**Self-healing citation checks.** See the README. A throttled, broken or changed source can no longer turn into an accusation, and the checker recovers by itself.
+
+- Source health: a breaker per source (three failures, or a `Retry-After`, then it is left alone, capped at 15 minutes, then probed), `health()`.
+- A **self-test before any accusation**: before "not found", each source that said so must find a work that certainly exists. Single-flight, trusted for ten minutes.
+- A reply that is not the shape the source normally sends is an outage, never "no results". (A changed API used to read as an empty result list.)
+- **Stale-while-error**: an earlier conclusive answer is served, marked `stale`, when the sources cannot be reached. Verdicts gain `retryable`, `stale` and `reason`.
+- `recheck(report)` and `repair(text, report)` (a real paper with an invented DOI gets the matched record's DOI, after the new link is itself verified).
+- Short `Retry-After` waits are retried in the call; long ones are believed and the source is left alone instead.
+- **Fixed: the cache ignored the link**, so a paper first cited with a good DOI could make a later invented DOI read as verified, and the reverse. The link is now part of what is remembered.
+
+**`@extrafemi-ai/assay/gate`** (ported from Content Engine's sourcing gate): `createGate(policy)`, `rules`, `defaultPolicy`, `summariseRecency`. The policy is data you pass in; Oneremit's own tier list stays in Content Engine. The Hormuz tracker's "one authority or two news sources" is a second rule on the same engine. Offline.
+
 ## 0.2.0
 
 Assay becomes a set of separate checks, each with its own entry point and each saying what it compares against.

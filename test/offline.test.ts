@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 /** The modules that check text against material you supply say they never touch the network, so they are safe on private text (a CV, a draft). Enforce it in the source, so it stays true. */
-const OFFLINE = ['quotes', 'figures', 'numbers', 'summary'];
+const OFFLINE = ['quotes', 'figures', 'numbers', 'summary', 'gate'];
 const NETWORK = /\bfetch\b|XMLHttpRequest|WebSocket|EventSource|sendBeacon|\bimport\s*\(|require\s*\(|node:(?:http|https|net|dns|tls|dgram)|from\s+['"](?!\.\/)/;
 
 describe('the offline modules', () => {

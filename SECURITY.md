@@ -32,7 +32,7 @@ Assay sends requests to free, shared services on behalf of whoever calls it. `ma
 
 ## Which parts touch the network
 
-Only **citations** does. `quotes` and `figures` compare text with material you supply and have no network access: a test fails if they, or anything they import, could reach one. That makes them the ones to use on private text. They also take text of any size without a pattern that backtracks badly (a megabyte of digits, brackets and repeated words each ran in milliseconds), and `evalFormula` is bounded in length and nesting and never uses `eval` or `Function`.
+Only **citations** does. `quotes`, `figures` and `gate` compare text with material you supply and have no network access: a test fails if they, or anything they import, could reach one. That makes them the ones to use on private text. They also take text of any size without a pattern that backtracks badly (a megabyte of digits, brackets and repeated words each ran in milliseconds), and `evalFormula` is bounded in length and nesting and never uses `eval` or `Function`.
 
 ## What it does with untrusted text
 
