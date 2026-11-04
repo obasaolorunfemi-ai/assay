@@ -3,25 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Assay: catch what AI made up</title>
-<meta name="description" content="Finds invented citations, quotes that are not in the source, and numbers nobody gave the AI. Free, open source, and the checks on your own text run in your browser.">
+<title>Assay: catch fake citations, quotes and numbers in AI text</title>
+<meta name="description" content="Free, open-source checks for AI-written text: invented citations, quotes that are not in the source, and numbers nobody supplied. Runs in your browser.">
 <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://assay.extrafemi.com/">
-<meta property="og:type" content="website"><meta property="og:url" content="https://assay.extrafemi.com/"><meta property="og:site_name" content="Assay">
-<meta property="og:title" content="Assay: catch what AI made up"><meta property="og:description" content="Finds invented citations, quotes that are not in the source, and numbers nobody gave the AI. Free, open source, and the checks on your own text run in your browser.">
-<meta name="twitter:card" content="summary"><meta name="twitter:title" content="Assay: catch what AI made up"><meta name="twitter:description" content="Finds invented citations, quotes that are not in the source, and numbers nobody gave the AI. Free, open source, and the checks on your own text run in your browser.">
+<meta property="og:type" content="website"><meta property="og:url" content="https://assay.extrafemi.com/"><meta property="og:site_name" content="Assay"><meta property="og:locale" content="en">
+<meta property="og:title" content="Assay: catch fake citations, quotes and numbers in AI text"><meta property="og:description" content="Free, open-source checks for AI-written text: invented citations, quotes that are not in the source, and numbers nobody supplied. Runs in your browser.">
+<meta property="og:image" content="https://assay.extrafemi.com/assay-share-card-1200x630.png"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Assay: catch what AI made up. Three verdicts: a quote nobody wrote, a number from nowhere, could not look so it says so.">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Assay: catch fake citations, quotes and numbers in AI text"><meta name="twitter:description" content="Free, open-source checks for AI-written text: invented citations, quotes that are not in the source, and numbers nobody supplied. Runs in your browser."><meta name="twitter:image" content="https://assay.extrafemi.com/assay-share-card-1200x630.png"><meta name="twitter:image:alt" content="Assay: catch what AI made up.">
+<meta name="author" content="Extrafemi Labs">
 <meta name="robots" content="index,follow,max-image-preview:large">
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://assay.extrafemi.com/#site","url":"https://assay.extrafemi.com/","name":"Assay","description":"Checks AI-written text against evidence.","inLanguage":"en"},{"@type":"SoftwareSourceCode","@id":"https://assay.extrafemi.com/#code","name":"Assay","codeRepository":"https://github.com/obasaolorunfemi-ai/assay","programmingLanguage":"TypeScript","license":"https://opensource.org/license/mit","description":"Checks AI-written text against evidence: citations against CrossRef, OpenAlex and the DOI registries; quotes against their source text; figures against the materials you supplied. Each check says what it checked against, in plain words."}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://assay.extrafemi.com/#site","url":"https://assay.extrafemi.com/","name":"Assay","description":"Free, open-source checks for AI-written text: invented citations, quotes that are not in the source, and numbers nobody supplied. Runs in your browser.","inLanguage":"en","publisher":{"@id":"https://assay.extrafemi.com/#org"}},{"@type":"Organization","@id":"https://assay.extrafemi.com/#org","name":"Extrafemi Labs","url":"https://labs.extrafemi.com","sameAs":["https://github.com/obasaolorunfemi-ai/assay"]},{"@type":"SoftwareApplication","@id":"https://assay.extrafemi.com/#app","name":"Assay","url":"https://assay.extrafemi.com/","description":"Checks AI-written text against evidence: citations against CrossRef, OpenAlex and the DOI registries; quotes against their source text; figures against the materials you supplied. Each check says what it checked against, in plain words.","applicationCategory":"DeveloperApplication","operatingSystem":"Any","softwareVersion":"0.5.0","license":"https://opensource.org/license/mit","downloadUrl":"https://www.npmjs.com/package/@extrafemi-ai/assay","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@id":"https://assay.extrafemi.com/#org"},"image":"https://assay.extrafemi.com/assay-share-card-1200x630.png"},{"@type":"SoftwareSourceCode","name":"Assay","codeRepository":"https://github.com/obasaolorunfemi-ai/assay","programmingLanguage":"TypeScript","license":"https://opensource.org/license/mit","description":"Checks AI-written text against evidence: citations against CrossRef, OpenAlex and the DOI registries; quotes against their source text; figures against the materials you supplied. Each check says what it checked against, in plain words."}]}</script>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/fonts/newsreader-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/inter-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<link rel="stylesheet" href="/style.css?v=f65cd925">
-<script src="/theme.js?v=f65cd925"></script>
-<script src="/menu.js?v=f65cd925" defer></script>
-<script src="/anim.js?v=f65cd925" defer></script>
-<script src="/counter.js?v=f65cd925" defer></script>
+<link rel="stylesheet" href="/style.css?v=24d85a3d">
+<script src="/theme.js?v=24d85a3d"></script>
+<script src="/menu.js?v=24d85a3d" defer></script>
+<script src="/anim.js?v=24d85a3d" defer></script>
+<script src="/counter.js?v=24d85a3d" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -149,16 +151,21 @@ checkGrounding('The rate moved to ₦425 in 2023 [[c1]].', claims);</code></pre>
 </div>
 <p class="actions"><a class="pill" href="/cases/">These are small. Read the cases that cost real money</a></p>
 </div></section>
-<section class="band" id="live-counter"><div class="col">
-<h2>What it has caught, live</h2>
-<p class="sub">Apps that choose to take part add their counts here, and this page updates as they do. Only numbers are sent, never text. It is self-reported, rate-limited and not verified, and nothing is sent unless an app turns it on.</p>
+<section class="band" id="counter"><div class="col">
+<h2>What Assay has caught</h2>
+<p class="sub">One counter. It adds the project's own documented runs to what apps that chose to take part have reported, and the table underneath shows each part, so you can see which is which. Only numbers are ever sent, never text; reports from apps are self-reported and not verified. It updates itself while you read.</p>
 <ul class="tally live" id="live" aria-live="polite">
-<li><span class="num" data-k="checked">…</span><p>things checked</p></li>
-<li><span class="num" data-k="failed">…</span><p>caught: invented, missing or contradicted</p></li>
-<li><span class="num" data-k="check">…</span><p>sent for a person to look at</p></li>
-<li><span class="num" data-k="reports">…</span><p>reports received</p></li>
+<li><span class="num" data-k="checked">102</span><p>things checked</p></li>
+<li><span class="num" data-k="failed">15</span><p>caught: invented, missing or contradicted</p></li>
+<li><span class="num" data-k="check">5</span><p>sent for a person to look at</p></li>
+<li><span class="num" data-a="checked">0</span><p>of those reported live by apps taking part</p></li>
 </ul>
-<p class="small" id="live-note">Loading the counter.</p>
+<div class="table-wrap"><table><caption class="sr">Where the counted items come from</caption><thead><tr><th>Where they come from</th><th>When</th><th>Checked</th><th>Caught</th><th>To look at</th></tr></thead><tbody>
+<tr><td><a href="/paper/#8-evaluation">The project’s hand-labelled sample: citations written by free models</a></td><td>2026-11-03</td><td>30</td><td>15</td><td>3</td></tr>
+<tr><td><a href="/paper/#7-verifying-the-library">The references in the project’s two technical papers, checked by Assay itself</a></td><td>2026-11-04</td><td>72</td><td>0</td><td>2</td></tr>
+<tr><td>Apps that chose to report, live</td><td id="live-when">none yet</td><td data-a="checked">0</td><td data-a="failed">0</td><td data-a="check">0</td></tr>
+</tbody></table></div>
+<p class="small" id="live-note">Loading the live part of the counter.</p>
 <details class="take-part"><summary>Take part: three lines in your app</summary>
 <pre><code>import { createAssay } from '@extrafemi-ai/assay';
 import { createTally } from '@extrafemi-ai/assay/tally';
@@ -168,17 +175,7 @@ const tally = createTally();
 const assay = createAssay({ tally });   // counts what it finds, in memory
 startSharing(tally);                    // sends the numbers, never text, every ten minutes</code></pre>
 <p class="small">What is sent: for each check, how many items were checked and how many came back ok, to check or failed. No text, names or identifiers. The counter keeps no address: it hashes the sender with the day's date, in memory, only to limit what one sender can add in a day, and forgets it. Its code is in the repository, in <code>worker/</code>.</p></details>
-</div></section>
-<section class="band"><div class="col">
-<h2>Caught while building Assay</h2>
-<p class="sub">Counted from the project's own work, each linked to where it comes from. These are not usage statistics.</p>
-<ul class="tally">
-<li><span class="num">15 of 30</span><p>citations written by free models that turned out invented or wrongly linked, in a hand-labelled sample from 3 November 2026.</p><a href="/paper/#8-evaluation">The sample, and why it is not a benchmark</a></li>
-<li><span class="num">34 of 36</span><p>references in the project's two technical papers were verified by Assay itself; two could not be checked because a source was throttling, and none failed or was retracted.</p><a href="/paper/#7-verifying-the-library">How that was run</a></li>
-<li><span class="num">1</span><p>real bug in Assay found by Assay: a correctly cited paper looked wrong because its title carried markup. Fixed in 0.4.0.</p><a href="/changelog/">In the changelog</a></li>
-<li><span class="num">10</span><p>places where Assay's own text parsing could be made to run for minutes on hostile input, found by measuring and fixed before release.</p><a href="/security/">In the security notes</a></li>
-</ul>
-<p class="actions"><a class="pill" href="/try/">Try the checks: the demo counts what it catches for you, on your device only</a></p>
+<p class="small">Also found while building Assay, and not counted above because they were not checks: one real bug in Assay itself (a correctly cited paper looked wrong because its title carried markup, fixed in 0.4.0) and ten places where its own text parsing could be made to run for minutes on hostile input, found by measuring and fixed before release. See the <a href="/changelog/">changelog</a> and the <a href="/security/">security notes</a>.</p>
 </div></section>
 <section class="band"><div class="col">
 <h2>Why a red mark is worth believing</h2>

@@ -1,5 +1,7 @@
 // The counter's rules, kept apart from the Worker so they can be tested without Cloudflare.
 // What it stores: running totals of NUMBERS, per check. What it never receives or stores: text, names, addresses, identifiers.
+import { BASELINE } from './baseline.mjs';
+
 export const CHECKS = ['citations', 'quotes', 'figures', 'gate', 'grounding', 'values', 'links', 'support', 'retractions', 'legal'];
 export const LIMITS = {
   /** The most items one report may claim. */
@@ -50,9 +52,25 @@ export function applyReport(totals, counts, now = Date.now()) {
   return totals;
 }
 
-/** What the public may see. */
-export function publicView(totals) {
-  return { since: totals.since, updated: totals.updated, reports: totals.reports, checked: totals.checked, ok: totals.ok, check: totals.check, failed: totals.failed, byCheck: totals.byCheck, note: 'Self-reported by apps that chose to take part. Counts only. Not verified.' };
+const sum = (rows) => rows.reduce((a, r) => ({ checked: a.checked + r.checked, ok: a.ok + r.ok, check: a.check + r.check, failed: a.failed + r.failed }), zero());
+const rowTotal = (counts) => sum(Object.values(counts));
+
+/** What the public may see: ONE set of totals, made of the project's own documented runs plus what apps have reported, with the parts listed so each can be seen. */
+export function publicView(totals, baseline = BASELINE) {
+  const own = baseline.map((b) => ({ id: b.id, label: b.label, when: b.when, link: b.link, ...rowTotal(b.counts) }));
+  const ownSum = sum(own);
+  const apps = { reports: totals.reports, checked: totals.checked, ok: totals.ok, check: totals.check, failed: totals.failed };
+  const byCheck = {};
+  for (const name of CHECKS) {
+    const a = totals.byCheck[name] ?? zero();
+    byCheck[name] = baseline.reduce((acc, b) => (b.counts[name] ? sum([acc, b.counts[name]]) : acc), { ...a });
+  }
+  return {
+    since: totals.since, updated: totals.updated,
+    checked: ownSum.checked + apps.checked, ok: ownSum.ok + apps.ok, check: ownSum.check + apps.check, failed: ownSum.failed + apps.failed,
+    byCheck, sources: own, apps,
+    note: 'The totals are the project’s own documented runs plus what apps that chose to take part have reported. Reports are self-reported counts, not verified.',
+  };
 }
 
 /** A per-source daily allowance, held in memory only. `state` is { day, used: Map }. Returns whether `amount` more is allowed. */

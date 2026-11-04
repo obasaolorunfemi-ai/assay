@@ -4,6 +4,7 @@ import { LIMITS, allowance, applyReport, emptyTotals, parseReport, publicView } 
 // @ts-expect-error plain JavaScript module, no types
 import worker, { Counter } from '../worker/index.mjs';
 
+const BASE = { checked: 102, ok: 82, check: 5, failed: 15 };
 const good = { v: 1, counts: { quotes: { checked: 3, ok: 1, check: 1, failed: 1 }, citations: { checked: 2, ok: 2, check: 0, failed: 0 } } };
 
 describe('the counter rules', () => {
@@ -30,7 +31,17 @@ describe('the counter rules', () => {
     const t = applyReport(applyReport(emptyTotals(0), parseReport(JSON.stringify(good)).counts), parseReport(JSON.stringify(good)).counts);
     expect(t).toMatchObject({ reports: 2, checked: 10, ok: 6, check: 2, failed: 2 });
     expect(t.byCheck.quotes.failed).toBe(2);
-    expect(Object.keys(publicView(t))).toEqual(['since', 'updated', 'reports', 'checked', 'ok', 'check', 'failed', 'byCheck', 'note']);
+    const v = publicView(t);
+    expect(Object.keys(v)).toEqual(['since', 'updated', 'checked', 'ok', 'check', 'failed', 'byCheck', 'sources', 'apps', 'note']);
+    expect(v).toMatchObject({ checked: BASE.checked + 10, failed: BASE.failed + 2, apps: { reports: 2, checked: 10, failed: 2 } });
+    expect(v.sources.map((x: any) => x.id)).toEqual(['sample', 'references']);
+  });
+  it('the project baseline is the documented runs and adds up: 102 checked, 15 caught', () => {
+    const v = publicView(emptyTotals(0));
+    expect(v).toMatchObject(BASE);
+    expect(v.apps).toMatchObject({ reports: 0, checked: 0 });
+    expect(v.byCheck.citations).toMatchObject({ checked: 66, failed: 15 });
+    expect(v.byCheck.retractions).toMatchObject({ checked: 36, ok: 36 });
   });
   it('limits what one source can add in a day, and starts again the next day', () => {
     const s = { day: '', used: new Map() };
@@ -55,7 +66,7 @@ describe('the counter Worker', () => {
     expect((await worker.fetch(post(good), e)).status).toBe(202);
     const got = await worker.fetch(new Request('https://assay.example/api/count'), e);
     const body = await got.json();
-    expect(body).toMatchObject({ reports: 1, checked: 5, failed: 1 });
+    expect(body).toMatchObject({ checked: BASE.checked + 5, failed: BASE.failed + 1, apps: { reports: 1, checked: 5, failed: 1 } });
     expect(got.headers.get('access-control-allow-origin')).toBe('*');
     expect(body.note).toMatch(/not verified/i);
   });
@@ -66,7 +77,7 @@ describe('the counter Worker', () => {
     expect((await worker.fetch(post('x'.repeat(5000)), e)).status).toBe(413);
     expect((await worker.fetch(new Request('https://assay.example/api/count', { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify(good) }), e)).status).toBe(415);
     expect((await worker.fetch(new Request('https://assay.example/api/count', { method: 'DELETE' }), e)).status).toBe(405);
-    expect((await (await worker.fetch(new Request('https://assay.example/api/count'), e)).json()).reports).toBe(0);
+    expect((await (await worker.fetch(new Request('https://assay.example/api/count'), e)).json()).apps.reports).toBe(0);
   });
   it('rate-limits one source per day but still accepts another', async () => {
     const e = env();

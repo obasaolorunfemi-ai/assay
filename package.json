@@ -97,7 +97,8 @@
     "smoke": "npm run build && node scripts/smoke.mjs",
     "site": "npm run build && node site/build.mjs",
     "benchmark:template": "node scripts/benchmark-template.mjs",
-    "benchmark:agreement": "node scripts/agreement.mjs"
+    "benchmark:agreement": "node scripts/agreement.mjs",
+    "site:check": "node site/check.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

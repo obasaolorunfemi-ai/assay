@@ -374,3 +374,6 @@ blockquote.cite { margin: 1rem 0 1.4rem; padding: .9rem 1.2rem; border-left: 4px
 .take-part { margin: 1rem 0 0; }
 .take-part summary { cursor: pointer; font-weight: 600; color: var(--ac); min-height: 2.75rem; display: flex; align-items: center; }
 .take-part pre { margin: .4rem 0 .8rem; }
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#counter table td:nth-child(n+3), #counter table th:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
