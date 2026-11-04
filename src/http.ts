@@ -3,11 +3,15 @@ export interface Http {
   json(url: string): Promise<{ ok: boolean; status: number; body: unknown }>;
 }
 
-export function makeHttp(opts: { fetch?: typeof fetch; timeoutMs?: number; concurrency?: number; retryDelayMs?: number }): Http {
+export function makeHttp(opts: { fetch?: typeof fetch; timeoutMs?: number; concurrency?: number; retryDelayMs?: number; requestsPerSecond?: number }): Http {
   const f = opts.fetch ?? globalThis.fetch;
   const timeoutMs = opts.timeoutMs ?? 8000;
   const limit = Math.max(1, opts.concurrency ?? 4);
   const retryDelay = opts.retryDelayMs ?? 1200;
+  // Requests start no faster than this, whatever the concurrency: the services are free and shared, and CrossRef's public pool allows about 5 a second.
+  const gap = 1000 / Math.max(0.1, opts.requestsPerSecond ?? 5);
+  let nextStart = 0;
+  const pace = async () => { const now = Date.now(); const at = Math.max(now, nextStart); nextStart = at + gap; if (at > now) await new Promise((go) => setTimeout(go, at - now)); };
   let running = 0;
   const waiting: Array<() => void> = [];
   const acquire = () => new Promise<void>((go) => { if (running < limit) { running++; go(); } else waiting.push(() => { running++; go(); }); });
@@ -16,11 +20,13 @@ export function makeHttp(opts: { fetch?: typeof fetch; timeoutMs?: number; concu
     async json(url) {
       await acquire();
       try {
+        await pace();
         // One polite retry when a source says "slow down" (429) or is briefly busy (503): these free services share their limits.
         let res = await f(url, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: 'application/json' } });
         if (res.status === 429 || res.status === 503) {
           const ra = Number(res.headers?.get?.('retry-after'));
           await new Promise((go) => setTimeout(go, Math.min(Number.isFinite(ra) && ra > 0 ? ra * 1000 : retryDelay, 3000)));
+          await pace();
           res = await f(url, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: 'application/json' } });
         }
         let body: unknown = null;

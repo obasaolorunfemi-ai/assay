@@ -18,7 +18,7 @@ export function messageFor(v: Pick<Verdict, 'status' | 'source' | 'exact' | 'mat
       const parts: string[] = [];
       if (v.exact === false && v.match?.title) parts.push(`the title differs (the record: “${v.match.title.slice(0, 140)}”)`);
       parts.push(...v.notes);
-      return parts.length ? `Found in ${v.source}, but check: ${parts.join('; ')}.` : `Verified in ${v.source}.`;
+      return parts.length ? `Found in ${v.source}, but check: ${parts.join('; ')}.` : `A record with this author and title exists in ${v.source}. That shows the work is real, not that it says what the text claims.`;
     }
     case 'badlink': {
       const why = v.linkState === 'dead' ? 'the DOI given does not exist' : 'the link given belongs to a different paper';

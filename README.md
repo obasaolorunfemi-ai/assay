@@ -68,14 +68,19 @@ Each verdict has `status` (`found`, `badlink`, `mismatch`, `notfound`, `approx-o
 | `sources` | Replace or extend where it looks. A source is `{ name, search(query, http, ctx) }`. |
 | `cache` | Any `{ get, set }` store (Lodestone's stores fit). Default: in memory, one day. "Unavailable" is never cached. |
 | `maxCitations` | The most citations checked in one call (default 50). Each costs up to three requests to free, shared services; a text with thousands must not become thousands of requests. The rest come back as `limit` (bucket `check`). |
+| `requestsPerSecond` | Requests start no faster than this (default 5, CrossRef's public-pool rate), however many run at once. |
 | `concurrency`, `timeoutMs`, `retryDelayMs` | Polite by default: 4 requests at once, 8 s each, one retry after a 429. |
 | `fetch` | Your own `fetch`. |
+
+### Showing a verdict in a page
+
+`message`, `match.title` and the citation's own fields contain text from the web or from a model. Use `textContent`, or `escapeHtml()` (exported) before putting any of it in HTML.
 
 ## What it cannot do
 
 Read this before you trust a green tick.
 
-- **It proves a source exists, not that it says what the sentence claims.** A verified citation can still be attached to a false claim.
+- **It proves a source exists, not that it says what the sentence claims.** A verified citation can still be attached to a false claim, and a fabricated one can be written to match a real record. The messages say "a record exists", not "this is correct".
 - **Coverage has gaps.** Books, reports, chapters, grey literature and non-English work are thin in these indexes. A real work can come
   back `failed` (a real WHO report did, in the test corpus). That is why the wording is "not verified", and why `strip()` is opt-in.
 - **Direct links cannot be checked** from a browser (most sites do not allow it). They are reported as `check`.

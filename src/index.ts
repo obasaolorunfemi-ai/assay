@@ -2,6 +2,7 @@ export { createAssay } from './check.js';
 export type { Assay, AssayOptions } from './check.js';
 export { parseCitations, splitAuthors } from './parse.js';
 export { strip } from './strip.js';
+export { escapeHtml } from './escape.js';
 export type { StripOptions } from './strip.js';
 export { summarize, bucketOf } from './verdict.js';
 export { crossref, openalex, openlibrary, defaultSources } from './sources.js';

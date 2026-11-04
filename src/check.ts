@@ -27,6 +27,8 @@ export interface AssayOptions {
   retryDelayMs?: number;
   /** The most citations checked in one call. Each costs up to three requests to free, shared services, so a text with thousands (from a model, or from a user) must not be able to turn Assay into a way of hammering them. The rest come back as `limit` (bucket `check`). Default 50. */
   maxCitations?: number;
+  /** Requests started per second, across all citations. Default 5, which is what CrossRef's public pool allows. Lower it if several processes share one address. */
+  requestsPerSecond?: number;
   /** Requests at once, across all citations. Default 4: the sources are free and shared, so this is polite by default. */
   concurrency?: number;
 }
@@ -55,7 +57,7 @@ function overLimit(c: Citation): Verdict {
 
 export function createAssay(opts: AssayOptions = {}): Assay {
   const ctx = {
-    http: makeHttp({ fetch: opts.fetch, timeoutMs: opts.timeoutMs, concurrency: opts.concurrency, retryDelayMs: opts.retryDelayMs }),
+    http: makeHttp({ fetch: opts.fetch, timeoutMs: opts.timeoutMs, concurrency: opts.concurrency, retryDelayMs: opts.retryDelayMs, requestsPerSecond: opts.requestsPerSecond }),
     sources: opts.sources ?? defaultSources,
     mailto: opts.mailto ?? '',
     keys: opts.keys ?? {},

@@ -15,4 +15,7 @@ First release, extracted from Whetstone's citation checker.
 - A source that is throttled or down makes the result `unavailable`, never `notfound`. One polite retry after a 429.
 - `strip()` replaces, removes or marks failed citations.
 - `maxCitations` (default 50): a text with thousands of citations is checked up to the limit, and the rest are returned as `limit` without a request. Measured before the cap: 5,000 distinct citations caused 15,000 outbound requests.
+- `requestsPerSecond` (default 5): requests start no faster than this however many run at once.
+- `escapeHtml()` exported, so a verdict can be shown in a page without a hand-rolled escape.
+- A match is reported as "a record exists", not "verified": existence is not correctness.
 - Options: `mailto`, `keys.openalex`, `maxCitations`, `sources`, `cache`, `concurrency`, `timeoutMs`, `retryDelayMs`, `fetch`.

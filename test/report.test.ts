@@ -10,14 +10,14 @@ const net = () => router({
 
 describe('check()', () => {
   it('returns a verdict for each citation, a summary, and ok=false when any failed', async () => {
-    const rep = await createAssay({ fetch: net().fetch }).check(TEXT);
+    const rep = await createAssay({ requestsPerSecond: 1e6, fetch: net().fetch }).check(TEXT);
     expect(rep.verdicts.map((v) => v.bucket)).toEqual(['ok', 'failed']);
     expect(rep.summary).toMatchObject({ total: 2, verified: 1, failed: 1, level: 'bad' });
     expect(rep.summary.text).toBe('Citations: 2 · ✓ 1 verified · ✕ 1 not verified — do not rely on them.');
     expect(rep.ok).toBe(false);
   });
   it('is ok with no citations at all', async () => {
-    const rep = await createAssay({ fetch: net().fetch }).check('No sources here.');
+    const rep = await createAssay({ requestsPerSecond: 1e6, fetch: net().fetch }).check('No sources here.');
     expect(rep.ok).toBe(true);
     expect(rep.summary.total).toBe(0);
   });
@@ -33,19 +33,19 @@ describe('summarize()', () => {
 
 describe('strip()', () => {
   it('replaces a failed citation with a placeholder and leaves the rest of the text alone', async () => {
-    const rep = await createAssay({ fetch: net().fetch }).check(TEXT);
+    const rep = await createAssay({ requestsPerSecond: 1e6, fetch: net().fetch }).check(TEXT);
     const out = strip(TEXT, rep);
     expect(out).toContain('[Rose, 1985, "Sick individuals and sick populations" — IJE]');
     expect(out).toContain('[citation removed: could not be verified]');
     expect(out).not.toContain('Bosnia');
   });
   it('can remove the tag and tidy the space, or mark it for a person', async () => {
-    const rep = await createAssay({ fetch: net().fetch }).check(TEXT);
+    const rep = await createAssay({ requestsPerSecond: 1e6, fetch: net().fetch }).check(TEXT);
     expect(strip(TEXT, rep, { mode: 'remove' })).toBe('Aid weakens accountability [Rose, 1985, "Sick individuals and sick populations" — IJE]. Microcredit fails, as shown.');
     expect(strip(TEXT, rep, { mode: 'mark' })).toContain('[⚠ unverified: Meyer, 2016,');
   });
   it('acts only on the buckets asked for', async () => {
-    const rep = await createAssay({ fetch: net().fetch }).check(TEXT);
+    const rep = await createAssay({ requestsPerSecond: 1e6, fetch: net().fetch }).check(TEXT);
     expect(strip(TEXT, rep, { buckets: ['check'] })).toBe(TEXT);
   });
 });

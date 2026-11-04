@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createAssay, parseCitations } from '../src/index.js';
+import { createAssay, escapeHtml, parseCitations } from '../src/index.js';
 import type { Citation } from '../src/index.js';
 import { cr, crItem, ol, oa, oaWork, router } from './helpers.js';
 
@@ -7,7 +7,7 @@ const REAL = crItem('Prospect Theory: An Analysis of Decision under Risk', ['Kah
 const ref = (o: Partial<Citation> = {}): Citation => ({ raw: 'x', tag: '[x]', authors: 'Kahneman & Tversky', year: '1979', title: 'Prospect Theory: An Analysis of Decision under Risk', venue: 'Econometrica', url: '', tier: 'search', ...o });
 const run = async (routes: Parameters<typeof router>[0], c: Citation) => {
   const net = router(routes);
-  const a = createAssay({ fetch: net.fetch, retryDelayMs: 0 });
+  const a = createAssay({ requestsPerSecond: 1e6, fetch: net.fetch, retryDelayMs: 0 });
   const rep = await a.verify([c]);
   return { v: rep.verdicts[0]!, rep, net };
 };
@@ -16,7 +16,7 @@ describe('the title and author check', () => {
   it('verifies a real paper with a real DOI', async () => {
     const { v } = await run({ 'api.crossref.org/works?query': cr(REAL), 'api.crossref.org/works/10.2307/1914185': { status: 200, body: { message: REAL } } }, ref({ url: 'https://doi.org/10.2307/1914185' }));
     expect(v).toMatchObject({ status: 'found', exact: true, bucket: 'ok', source: 'CrossRef' });
-    expect(v.message).toBe('Verified in CrossRef.');
+    expect(v.message).toBe('A record with this author and title exists in CrossRef. That shows the work is real, not that it says what the text claims.');
   });
 
   it('flags an invented paper: no record at all, or a real author with a title they never wrote', async () => {
@@ -43,7 +43,7 @@ describe('the title and author check', () => {
       if (String(url).includes('api.crossref.org') && n++ === 0) return { ok: false, status: 429, headers: new Headers(), json: async () => ({}) } as Response;
       return { ok: true, status: 200, json: async () => ({ message: { items: [REAL] }, results: [], docs: [] }) } as Response;
     }) as unknown as typeof fetch;
-    const rep = await createAssay({ fetch: f, retryDelayMs: 0 }).verify([ref()]);
+    const rep = await createAssay({ requestsPerSecond: 1e6, fetch: f, retryDelayMs: 0 }).verify([ref()]);
     expect(rep.verdicts[0]!.status).toBe('found');
     expect(n).toBe(2);
   });
@@ -174,7 +174,7 @@ describe('a text with a flood of citations', () => {
   it('checks only the first maxCitations and sends no requests for the rest', async () => {
     const net = router({ 'api.crossref.org/works?query': cr(), 'api.openalex.org': oa() });
     const text = Array.from({ length: 500 }, (_, i) => `[Author${i}, 2001, "A Distinct Title Number ${i} About Things" — J]`).join(' ');
-    const rep = await createAssay({ fetch: net.fetch, retryDelayMs: 0, maxCitations: 5 }).check(text);
+    const rep = await createAssay({ requestsPerSecond: 1e6, fetch: net.fetch, retryDelayMs: 0, maxCitations: 5 }).check(text);
     expect(rep.verdicts).toHaveLength(500);
     expect(rep.verdicts.filter((v) => v.status === 'limit')).toHaveLength(495);
     expect(rep.verdicts.filter((v) => v.status === 'limit').every((v) => v.bucket === 'check')).toBe(true);
@@ -183,15 +183,31 @@ describe('a text with a flood of citations', () => {
   it('defaults to 50, so a text of thousands cannot become thousands of requests', async () => {
     const net = router({ 'api.crossref.org/works?query': cr(), 'api.openalex.org': oa() });
     const text = Array.from({ length: 5000 }, (_, i) => `[Author${i}, 2001, "A Distinct Title Number ${i} About Things" — J]`).join(' ');
-    await createAssay({ fetch: net.fetch, retryDelayMs: 0 }).check(text);
+    await createAssay({ requestsPerSecond: 1e6, fetch: net.fetch, retryDelayMs: 0 }).check(text);
     expect(net.calls.length).toBeLessThanOrEqual(50 * 4);
+  });
+});
+
+describe('politeness and escaping', () => {
+  it('starts requests no faster than requestsPerSecond, whatever the concurrency', async () => {
+    const starts: number[] = [];
+    const f = (async () => { starts.push(Date.now()); return { ok: true, status: 200, json: async () => ({ message: { items: [] }, results: [], docs: [] }) } as Response; }) as unknown as typeof fetch;
+    const text = Array.from({ length: 4 }, (_, i) => `[Author${i}, 2001, "A Distinct Title Number ${i} About Things" — J]`).join(' ');
+    await createAssay({ fetch: f, requestsPerSecond: 20, concurrency: 8 }).check(text);
+    const gaps = starts.slice(1).map((t, i) => t - starts[i]!);
+    expect(starts.length).toBeGreaterThanOrEqual(8);
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(40);   // 20 a second is 50 ms apart; allow timer jitter
+  });
+  it('escapeHtml neutralises markup and quotes', () => {
+    expect(escapeHtml('<img src=x onerror="alert(1)"> & \'x\'')).toBe('&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; &#39;x&#39;');
+    expect(escapeHtml(null)).toBe('');
   });
 });
 
 describe('the cache and the options', () => {
   it('asks about a citation once', async () => {
     const net = router({ 'api.crossref.org/works?query': cr(REAL) });
-    const a = createAssay({ fetch: net.fetch });
+    const a = createAssay({ requestsPerSecond: 1e6, fetch: net.fetch });
     await a.verify([ref()]);
     const first = net.calls.length;
     await a.verify([ref()]);
@@ -200,7 +216,7 @@ describe('the cache and the options', () => {
 
   it('does not keep "unavailable": a failed lookup is retried next time', async () => {
     const net = router({ 'api.crossref.org': 'throw', 'api.openalex.org': 'throw', 'openlibrary.org': 'throw' });
-    const a = createAssay({ fetch: net.fetch });
+    const a = createAssay({ requestsPerSecond: 1e6, fetch: net.fetch });
     await a.verify([ref()]);
     const first = net.calls.length;
     await a.verify([ref()]);
@@ -209,16 +225,16 @@ describe('the cache and the options', () => {
 
   it('sends your address to CrossRef and OpenAlex only when you give one', async () => {
     const net = router({ 'api.crossref.org/works?query': cr(), 'api.openalex.org': oa() });
-    await createAssay({ fetch: net.fetch }).verify([ref({ authors: 'Zzz', title: 'An Invented Title About Nothing Real' })]);
+    await createAssay({ requestsPerSecond: 1e6, fetch: net.fetch }).verify([ref({ authors: 'Zzz', title: 'An Invented Title About Nothing Real' })]);
     expect(net.calls.some((u) => u.includes('mailto'))).toBe(false);
     const net2 = router({ 'api.crossref.org/works?query': cr(), 'api.openalex.org': oa() });
-    await createAssay({ fetch: net2.fetch, mailto: 'me@example.test' }).verify([ref({ authors: 'Zzz', title: 'An Invented Title About Nothing Real' })]);
+    await createAssay({ requestsPerSecond: 1e6, fetch: net2.fetch, mailto: 'me@example.test' }).verify([ref({ authors: 'Zzz', title: 'An Invented Title About Nothing Real' })]);
     expect(net2.calls.filter((u) => u.includes('mailto=me%40example.test')).length).toBeGreaterThanOrEqual(2);
   });
 
   it('sends an OpenAlex key to OpenAlex only, when you give one', async () => {
     const net = router({ 'api.crossref.org/works?query': cr(), 'api.openalex.org': oa() });
-    await createAssay({ fetch: net.fetch, keys: { openalex: 'oa-test-key' } }).verify([ref({ authors: 'Zzz', title: 'An Invented Title About Nothing Real' })]);
+    await createAssay({ requestsPerSecond: 1e6, fetch: net.fetch, keys: { openalex: 'oa-test-key' } }).verify([ref({ authors: 'Zzz', title: 'An Invented Title About Nothing Real' })]);
     expect(net.calls.filter((u) => u.includes('api_key=oa-test-key')).every((u) => u.includes('api.openalex.org'))).toBe(true);
     expect(net.calls.some((u) => u.includes('api_key=oa-test-key'))).toBe(true);
     expect(net.calls.some((u) => u.includes('crossref.org') && u.includes('oa-test-key'))).toBe(false);
@@ -227,8 +243,8 @@ describe('the cache and the options', () => {
   it('takes your own sources, and never throws on a broken one', async () => {
     const mine = { name: 'MyIndex', search: async (_q: unknown, _h: unknown, _c: unknown) => ({ ok: true, candidates: [{ title: 'Prospect Theory: An Analysis of Decision under Risk', authors: ['Kahneman', 'Tversky'], year: 1979, doi: '', article: false, venue: '' }] }) };
     const net = router({});
-    expect((await createAssay({ fetch: net.fetch, sources: [mine] }).verify([ref()])).verdicts[0]).toMatchObject({ status: 'found', source: 'MyIndex' });
+    expect((await createAssay({ requestsPerSecond: 1e6, fetch: net.fetch, sources: [mine] }).verify([ref()])).verdicts[0]).toMatchObject({ status: 'found', source: 'MyIndex' });
     const broken = { name: 'Broken', search: async () => { throw new Error('boom'); } };
-    expect((await createAssay({ fetch: net.fetch, sources: [broken] }).verify([ref()])).verdicts[0]!.status).toBe('skip');
+    expect((await createAssay({ requestsPerSecond: 1e6, fetch: net.fetch, sources: [broken] }).verify([ref()])).verdicts[0]!.status).toBe('skip');
   });
 });
