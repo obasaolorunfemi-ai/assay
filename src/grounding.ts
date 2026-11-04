@@ -210,5 +210,7 @@ export function stripTags(markdown: string, opts: { dropVerify?: boolean; tags?:
   const re = compile(fmt, []);
   let out = String(markdown ?? '').replace(re.anyTag, '');
   if (opts.dropVerify) out = out.replace(re.verify, '');
-  return out.replace(/[ \t]+([.,;:)])/g, '$1').replace(/[ \t]{2,}/g, ' ').replace(/ +\n/g, '\n');
+  // Tidy the spacing the tags leave behind. Bounded and line-wise, so a long run of spaces cannot make it slow.
+  const lines = out.replace(/[ \t]{1,20}([.,;:)])/g, '$1').replace(/[ \t]{2,20}/g, ' ').split('\n');
+  return lines.map((l, i) => (i < lines.length - 1 ? l.trimEnd() : l)).join('\n');
 }

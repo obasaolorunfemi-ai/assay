@@ -40,7 +40,7 @@ describe('the real rules, with no overrides', () => {
     let lookups = 0;
     const rebind = ((_h: string, _o: unknown, cb: (e: Error | null, a: unknown) => void) => { lookups++; cb(null, [{ address: '127.0.0.1', family: 4 }]); }) as never;
     // the name passes the URL rules (it is an ordinary public-looking name on port 80...) but the address it resolves to is loopback
-    const v = await createLinkChecker({ retryDelayMs: 0, unsafeOverrides: { lookup: rebind, url: (raw) => ({ ok: true, url: new URL(raw.replace('rebind.example.com', 'rebind.example.com') + ''), host: 'rebind.example.com' }) } }).checkOne(`http://rebind.example.com:${s.port}/`);
+    const v = await createLinkChecker({ retryDelayMs: 0, unsafeOverrides: { lookup: rebind, url: (raw) => ({ ok: true, url: new URL(raw), host: 'rebind.example.com' }) } }).checkOne(`http://rebind.example.com:${s.port}/`);
     expect(v).toMatchObject({ status: 'unsafe', bucket: 'failed' });
     expect(lookups).toBe(1);
     expect(s.hit.n).toBe(0);

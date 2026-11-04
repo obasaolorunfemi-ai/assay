@@ -179,9 +179,10 @@ export function looksLikeFormula(expr: string): boolean {
 // ── Numbers by kind ──────────────────────────────────────────────────────────────────────────────────────────────────────
 // A $14bn total, a ₦645 rate and a 62% ratio are different KINDS of figure, so they are never compared with each other.
 
-const PLAIN_NUM_RE = /([₦$€£])?\s?(\d[\d,]*(?:\.\d+)?)\b(?!\s?(?:bn|billion|m\b|million|trillion|%|percent))/gi;
-const SCALED_NUM_RE = /[₦$€£]?\s?(\d[\d,]*(?:\.\d+)?)\s?(bn|billion|m\b|million|trillion)\b/gi;
-const PERCENT_RE = /(\d[\d,]*(?:\.\d+)?)\s?(?:%|percent\b)/gi;
+// Every repetition is bounded (a figure longer than about 40 characters is not a figure): an unbounded `\d[\d,]*` followed by a suffix that usually fails is quadratic on a long run of digits.
+const PLAIN_NUM_RE = /([₦$€£])?\s?(\d[\d,]{0,40}(?:\.\d{1,20})?)\b(?!\s?(?:bn|billion|m\b|million|trillion|%|percent))/gi;
+const SCALED_NUM_RE = /[₦$€£]?\s?(\d[\d,]{0,40}(?:\.\d{1,20})?)\s?(bn|billion|m\b|million|trillion)\b/gi;
+const PERCENT_RE = /(\d[\d,]{0,40}(?:\.\d{1,20})?)\s?(?:%|percent\b)/gi;
 const SCALE: Record<string, number> = { bn: 1e9, billion: 1e9, m: 1e6, million: 1e6, trillion: 1e12 };
 const plainNum = (s: string) => Number(String(s).replace(/,/g, ''));
 

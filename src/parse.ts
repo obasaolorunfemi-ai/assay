@@ -1,8 +1,10 @@
 import type { Citation } from './types.js';
+import { cap, trimBy } from './strutil.js';
 
 /** "Banerjee et al." and "Banerjee, Duflo, et al." leave surnames, with no stray punctuation (a leftover "." once made every et-al citation unreadable). */
 export function splitAuthors(a: string): string[] {
-  return a.replace(/\s*\bet\s+al\b\.?/gi, '').split(/,|&|\band\b/i).map((s) => s.trim()).filter(Boolean);
+  // Capped, and every run of spaces is bounded: this takes text from anywhere, and an author list is never thousands of characters long.
+  return cap(String(a ?? ''), 1000).replace(/\s{0,20}\bet\s{1,20}al\b\.?/gi, '').split(/,|&|\band\b/i).map((s) => s.trim()).filter(Boolean);
 }
 
 /**
@@ -24,7 +26,7 @@ export function parseCitations(text: string): Citation[] {
     const raw = m[1]!.trim();
     if (seen.has(raw)) continue;
     if (/^Logical inference/i.test(raw)) continue;
-    const approx = /^CITATION\s*—?\s*approximate/i.test(raw);
+    const approx = /^CITATION\s{0,20}—?\s{0,20}approximate/i.test(raw);
     const urlMatch = raw.match(/https?:\/\/\S+/);
     const titled = /"[^"]{4,300}"/.test(raw) && /\b(19|20)\d{2}\b/.test(raw);
     if (!urlMatch && !approx && !titled) continue;
@@ -41,9 +43,9 @@ export function parseCitations(text: string): Citation[] {
     const ym = authorsAndYear.match(/\b(19|20)\d{2}\b/);
     // An approximate tag can carry a year range ("Putnam, 1993-2002, social capital"): all of it goes, not just the first year.
     const cleaned = approx
-      ? authorsAndYear.replace(/,?\s*\b(?:19|20)\d{2}(?:\s*[-–]\s*(?:19|20)?\d{2,4})?/g, '').replace(/\s{2,}/g, ' ')
-      : authorsAndYear.replace(/,?\s*\b(19|20)\d{2}\b/, '');
-    const authors = cleaned.replace(/^CITATION\s*—?\s*approximate:?\s*/i, '').replace(/^[,\s]+|[,\s]+$/g, '').trim() || 'Unknown';
+      ? authorsAndYear.replace(/,?\s{0,20}\b(?:19|20)\d{2}(?:\s{0,20}[-–]\s{0,20}(?:19|20)?\d{2,4})?/g, '').replace(/\s{2,20}/g, ' ')
+      : authorsAndYear.replace(/,?\s{0,20}\b(19|20)\d{2}\b/, '');
+    const authors = trimBy(cleaned.replace(/^CITATION\s{0,20}—?\s{0,20}approximate:?\s{0,20}/i, ''), (c) => c === ',' || /\s/.test(c)) || 'Unknown';
     out.push({
       raw, tag: m[0], authors, year: ym ? ym[0] : 'n.d.', title, venue: venue.trim(), url: urlMatch ? urlMatch[0] : '',
       tier: approx ? 'approximate' : urlMatch && !/search:/i.test(raw) ? 'link' : 'search',

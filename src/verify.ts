@@ -140,7 +140,7 @@ async function verifyApproximate(c: Citation, ctx: Ctx): Promise<{ core: Core; s
   const seg = (c.raw.match(/approximate:\s*([^—\]]+)/i) || [])[1] || '';
   const am = seg.match(/^\s*([A-Z][\p{L}'’-]+(?:\s*(?:&|and|\/)\s*[A-Z][\p{L}'’-]+)*)/u);
   if (!am) return { core: { status: 'approx-unparsed', notes: [] }, searched };
-  const names = am[1]!.split(/\s*(?:&|and|\/)\s*/).map((n) => n.trim()).filter(Boolean);
+  const names = am[1]!.split(/\s{0,20}(?:&|and|\/)\s{0,20}/).map((n) => n.trim()).filter(Boolean);
   const surnames = names.map((n) => nameKey(n.split(/\s+/).pop())).filter(Boolean);
   if (!surnames.length) return { core: { status: 'approx-unparsed', notes: [] }, searched };
   const years = (seg.match(/\b(?:19|20)\d{2}\b/g) || []).map(Number);

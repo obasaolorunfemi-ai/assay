@@ -138,13 +138,17 @@ export const rules = {
 
 export function hostOf(url: string): string {
   const raw = String(url ?? '').trim();
-  try { return new URL(raw).hostname.replace(/^www\./, '').toLowerCase(); }
-  catch { return raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[/?#]/)[0]!.toLowerCase(); }
+  let h: string;
+  try { h = new URL(raw).hostname.replace(/^www\./, '').toLowerCase(); }
+  catch { h = raw.slice(0, 2000).replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[/?#]/)[0]!.toLowerCase(); }
+  // A DNS name is at most 253 characters. Anything longer is not a host, and must not be allowed to cost time.
+  return h.length > 253 ? '' : h;
 }
 
 /** A host and each parent domain of it: "a.b.reuters.com" gives a.b.reuters.com, b.reuters.com, reuters.com. */
 function chain(host: string): string[] {
   const parts = host.split('.');
+  if (parts.length > 40) return [host];
   const out = [host];
   for (let i = 1; i < parts.length - 1; i++) out.push(parts.slice(i).join('.'));
   return out;
