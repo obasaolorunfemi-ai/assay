@@ -39,6 +39,59 @@ export const ILL = {
     <g class="pop t44"><rect class="alert" x="21" y="37" width="90" height="36" rx="10"/><circle class="badbg" cx="108" cy="40" r="11"/>${T(108, 45, '✕', 'tx c badtx')}</g>
     ${T(160, 82, 'no match', 'tx s c badtx pop t48')}`),
 
+  names: svg('Names in a draft are matched to the names in your materials; an organisation with no match is flagged.', `
+    <rect class="pane" x="12" y="12" width="108" height="166" rx="9"/>${T(66, 30, 'Your draft', 'tx s c')}
+    <rect class="chip" x="24" y="40" width="84" height="30" rx="8"/>${T(66, 60, 'Oneremit', 'tx c b')}
+    <rect class="chip" x="24" y="86" width="84" height="30" rx="8"/>${T(66, 106, 'Acme Capital', 'tx c b')}
+    <rect class="chip" x="24" y="132" width="84" height="30" rx="8"/>${T(66, 152, 'Lagos', 'tx c b')}
+    <rect class="pane2" x="200" y="12" width="108" height="166" rx="9"/>${T(254, 30, 'Your materials', 'tx s c')}
+    <rect class="chip" x="212" y="40" width="84" height="30" rx="8"/>${T(254, 60, 'Oneremit', 'tx c b')}
+    <rect class="chip" x="212" y="132" width="84" height="30" rx="8"/>${T(254, 152, 'Lagos', 'tx c b')}
+    <path class="draw t12 line" pathLength="1" d="M108 55 L212 55"/>
+    <path class="draw t24 line" pathLength="1" d="M108 147 L212 147"/>
+    <g class="pop t44"><rect class="alert" x="21" y="83" width="90" height="36" rx="10"/><circle class="badbg" cx="108" cy="86" r="11"/>${T(108, 91, '✕', 'tx c badtx')}</g>
+    ${T(160, 128, 'no match', 'tx s c badtx pop t48')}`),
+
+  claims: svg('A leadership word is backed by a matching word in your materials; an embellishment with no match is flagged.', `
+    <rect class="pane" x="12" y="12" width="108" height="166" rx="9"/>${T(66, 30, 'Your draft', 'tx s c')}
+    <rect class="chip" x="24" y="40" width="84" height="30" rx="8"/>${T(66, 60, 'led', 'tx c b')}
+    <rect class="chip" x="24" y="86" width="84" height="30" rx="8"/>${T(66, 106, 'large', 'tx c b')}
+    <rect class="chip" x="24" y="132" width="84" height="30" rx="8"/>${T(66, 152, 'team', 'tx c b')}
+    <rect class="pane2" x="200" y="12" width="108" height="166" rx="9"/>${T(254, 30, 'Your materials', 'tx s c')}
+    <rect class="chip" x="212" y="40" width="84" height="30" rx="8"/>${T(254, 60, 'managed', 'tx c b')}
+    <rect class="chip" x="212" y="132" width="84" height="30" rx="8"/>${T(254, 152, 'team', 'tx c b')}
+    <path class="draw t12 line" pathLength="1" d="M108 55 L212 55"/>
+    <path class="draw t24 line" pathLength="1" d="M108 147 L212 147"/>
+    <g class="pop t44"><rect class="alert" x="21" y="83" width="90" height="36" rx="10"/><circle class="badbg" cx="108" cy="86" r="11"/>${T(108, 91, '✕', 'tx c badtx')}</g>
+    ${T(160, 128, 'never said', 'tx s c badtx pop t48')}`),
+
+  references: svg('Sources named in a draft are looked for in your materials; a study nobody supplied is flagged.', `
+    <rect class="pane" x="12" y="12" width="108" height="166" rx="9"/>${T(66, 30, 'Your draft', 'tx s c')}
+    <rect class="chip" x="24" y="40" width="84" height="30" rx="8"/>${T(66, 60, 'World Bank', 'tx c b')}
+    <rect class="chip" x="24" y="86" width="84" height="30" rx="8"/>${T(66, 106, 'Smith, 2020', 'tx c b')}
+    <rect class="chip" x="24" y="132" width="84" height="30" rx="8"/>${T(66, 152, 'studies show', 'tx c b')}
+    <rect class="pane2" x="200" y="12" width="108" height="166" rx="9"/>${T(254, 30, 'Your materials', 'tx s c')}
+    <rect class="chip" x="212" y="40" width="84" height="30" rx="8"/>${T(254, 60, 'World Bank', 'tx c b')}
+    <path class="draw t12 line" pathLength="1" d="M108 55 L212 55"/>
+    <g class="pop t34"><rect class="alert" x="21" y="83" width="90" height="36" rx="10"/><circle class="badbg" cx="108" cy="86" r="11"/>${T(108, 91, '✕', 'tx c badtx')}</g>
+    <g class="pop t48"><rect class="alert" x="21" y="129" width="90" height="36" rx="10"/><circle class="badbg" cx="108" cy="132" r="11"/>${T(108, 137, '✕', 'tx c badtx')}</g>
+    ${T(254, 104, 'not supplied', 'tx s c badtx pop t38')}`),
+
+  own: svg('A citation is looked up in your own CV, profile and letters first, found there, and never sent to a public index.', `
+    <rect class="pane" x="12" y="52" width="122" height="70" rx="9"/>
+    ${T(24, 76, 'Okafor, 2019', 'tx b')}${T(24, 94, '“Mobile payments and', 'tx s')}${T(24, 106, 'informal merchants”', 'tx s')}
+    <rect class="pane2" x="196" y="30" width="112" height="46" rx="8"/>${T(252, 50, 'Your CV, profile', 'tx s c')}${T(252, 66, 'and letters', 'tx s c')}
+    <rect class="pane2" x="196" y="104" width="112" height="46" rx="8" opacity=".45"/>${T(252, 124, 'Public indexes', 'tx s c')}${T(252, 140, 'not asked', 'tx s c')}
+    <path class="draw t8 line" pathLength="1" d="M134 87 C165 87 165 53 196 53"/>
+    ${stamp(36, 26, 134, 100, '✓ Found, no request', true)}`),
+
+  draft: svg('A draft is held to figures, names, references and claims at once, and everything the materials do not back is listed.', `
+    <rect class="pane" x="12" y="12" width="132" height="166" rx="9"/>${T(78, 30, 'Your draft', 'tx s c')}
+    ${T(24, 54, 'Led a large team of 50', 'tx s')}${T(24, 72, 'at Acme Capital, as', 'tx s')}${T(24, 90, 'studies show.', 'tx s')}
+    <rect class="pane2" x="168" y="12" width="140" height="166" rx="9"/>${T(238, 30, 'Not backed by materials', 'tx s c')}
+    ${stamp(14, 178, 40, 124, '✕ figure 50', false)}${stamp(30, 178, 76, 124, '✕ name Acme', false)}${stamp(46, 178, 112, 124, '✕ claim large', false)}${stamp(62, 178, 148, 124, '✕ source studies', false)}
+    <path class="draw t8 line" pathLength="1" d="M144 70 L168 70"/>`),
+
   gate: svg('A claim backed only by press coverage tries to move up to the specialist tier, is held back, and is dropped.', `
     ${['0 · your own data', '1 · an authority', '2 · a specialist', '3 · the press', '4 · an aggregator'].map((l, i) => `<rect class="${i < 3 ? 'pane2' : 'pane'}" x="14" y="${14 + i * 32}" width="176" height="26" rx="7"/>${T(26, 31 + i * 32, l, i === 3 ? 'tx b' : 'tx')}`).join('')}
     <rect class="zone" x="9" y="9" width="186" height="100" rx="11"/>
