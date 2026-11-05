@@ -37,7 +37,7 @@
 <p class="tag">The checks that use your own text run in your browser and send nothing anywhere.</p>
 </section>
 <section class="band" id="checks"><div class="col">
-<div class="sec-head"><div><h2>Ten checks, each for one job</h2>
+<div class="sec-head"><div><h2>Fifteen checks, each for one job</h2>
 <p class="sub">They answer different questions, so each is its own check with its own import. Use the one that fits; they are not meant to run all at once. Each picture loops to show what the check does.</p></div>
 <button type="button" class="pill" id="motion" aria-pressed="false">Pause animations</button></div>
 <div class="checks">
@@ -70,6 +70,54 @@
     <path class="draw t24 line" pathLength="1" d="M108 147 L212 147"/>
     <g class="pop t44"><rect class="alert" x="21" y="37" width="90" height="36" rx="10"/><circle class="badbg" cx="108" cy="40" r="11"/><text class="tx c badtx" x="108" y="45">✕</text></g>
     <text class="tx s c badtx pop t48" x="160" y="82">no match</text></g></svg></div><div class="words"><span class="name">Figures</span><h3>Did I make up a number?</h3><p>It finds every number in the draft and checks that you supplied the same number in your own materials. “three” matches 3.</p><span class="where net">Stays on your device</span></div></article>
+<article class="check" id="check-names"><div class="stage"><svg class="ill" viewBox="0 0 320 190" role="img" aria-label="Names in a draft are matched to the names in your materials; an organisation with no match is flagged."><g aria-hidden="true">
+    <rect class="pane" x="12" y="12" width="108" height="166" rx="9"/><text class="tx s c" x="66" y="30">Your draft</text>
+    <rect class="chip" x="24" y="40" width="84" height="30" rx="8"/><text class="tx c b" x="66" y="60">Oneremit</text>
+    <rect class="chip" x="24" y="86" width="84" height="30" rx="8"/><text class="tx c b" x="66" y="106">Acme Capital</text>
+    <rect class="chip" x="24" y="132" width="84" height="30" rx="8"/><text class="tx c b" x="66" y="152">Lagos</text>
+    <rect class="pane2" x="200" y="12" width="108" height="166" rx="9"/><text class="tx s c" x="254" y="30">Your materials</text>
+    <rect class="chip" x="212" y="40" width="84" height="30" rx="8"/><text class="tx c b" x="254" y="60">Oneremit</text>
+    <rect class="chip" x="212" y="132" width="84" height="30" rx="8"/><text class="tx c b" x="254" y="152">Lagos</text>
+    <path class="draw t12 line" pathLength="1" d="M108 55 L212 55"/>
+    <path class="draw t24 line" pathLength="1" d="M108 147 L212 147"/>
+    <g class="pop t44"><rect class="alert" x="21" y="83" width="90" height="36" rx="10"/><circle class="badbg" cx="108" cy="86" r="11"/><text class="tx c badtx" x="108" y="91">✕</text></g>
+    <text class="tx s c badtx pop t48" x="160" y="128">no match</text></g></svg></div><div class="words"><span class="name">Names</span><h3>Did it invent a partner or an employer?</h3><p>It reads every name and acronym in the draft and checks that each word of it is in your own materials. It also checks links, DOIs and email addresses.</p><span class="where net">Stays on your device</span></div></article>
+<article class="check" id="check-claims"><div class="stage"><svg class="ill" viewBox="0 0 320 190" role="img" aria-label="A leadership word is backed by a matching word in your materials; an embellishment with no match is flagged."><g aria-hidden="true">
+    <rect class="pane" x="12" y="12" width="108" height="166" rx="9"/><text class="tx s c" x="66" y="30">Your draft</text>
+    <rect class="chip" x="24" y="40" width="84" height="30" rx="8"/><text class="tx c b" x="66" y="60">led</text>
+    <rect class="chip" x="24" y="86" width="84" height="30" rx="8"/><text class="tx c b" x="66" y="106">large</text>
+    <rect class="chip" x="24" y="132" width="84" height="30" rx="8"/><text class="tx c b" x="66" y="152">team</text>
+    <rect class="pane2" x="200" y="12" width="108" height="166" rx="9"/><text class="tx s c" x="254" y="30">Your materials</text>
+    <rect class="chip" x="212" y="40" width="84" height="30" rx="8"/><text class="tx c b" x="254" y="60">managed</text>
+    <rect class="chip" x="212" y="132" width="84" height="30" rx="8"/><text class="tx c b" x="254" y="152">team</text>
+    <path class="draw t12 line" pathLength="1" d="M108 55 L212 55"/>
+    <path class="draw t24 line" pathLength="1" d="M108 147 L212 147"/>
+    <g class="pop t44"><rect class="alert" x="21" y="83" width="90" height="36" rx="10"/><circle class="badbg" cx="108" cy="86" r="11"/><text class="tx c badtx" x="108" y="91">✕</text></g>
+    <text class="tx s c badtx pop t48" x="160" y="128">never said</text></g></svg></div><div class="words"><span class="name">Claims</span><h3>Does it claim more than you said?</h3><p>“Led a large team” has no number and no name. Assay checks that your materials use a word like “led”, and the word “large”, and says which they never do.</p><span class="where net">Stays on your device</span></div></article>
+<article class="check" id="check-references"><div class="stage"><svg class="ill" viewBox="0 0 320 190" role="img" aria-label="Sources named in a draft are looked for in your materials; a study nobody supplied is flagged."><g aria-hidden="true">
+    <rect class="pane" x="12" y="12" width="108" height="166" rx="9"/><text class="tx s c" x="66" y="30">Your draft</text>
+    <rect class="chip" x="24" y="40" width="84" height="30" rx="8"/><text class="tx c b" x="66" y="60">World Bank</text>
+    <rect class="chip" x="24" y="86" width="84" height="30" rx="8"/><text class="tx c b" x="66" y="106">Smith, 2020</text>
+    <rect class="chip" x="24" y="132" width="84" height="30" rx="8"/><text class="tx c b" x="66" y="152">studies show</text>
+    <rect class="pane2" x="200" y="12" width="108" height="166" rx="9"/><text class="tx s c" x="254" y="30">Your materials</text>
+    <rect class="chip" x="212" y="40" width="84" height="30" rx="8"/><text class="tx c b" x="254" y="60">World Bank</text>
+    <path class="draw t12 line" pathLength="1" d="M108 55 L212 55"/>
+    <g class="pop t34"><rect class="alert" x="21" y="83" width="90" height="36" rx="10"/><circle class="badbg" cx="108" cy="86" r="11"/><text class="tx c badtx" x="108" y="91">✕</text></g>
+    <g class="pop t48"><rect class="alert" x="21" y="129" width="90" height="36" rx="10"/><circle class="badbg" cx="108" cy="132" r="11"/><text class="tx c badtx" x="108" y="137">✕</text></g>
+    <text class="tx s c badtx pop t38" x="254" y="104">not supplied</text></g></svg></div><div class="words"><span class="name">References</span><h3>Did it lean on a source you never gave?</h3><p>It reads author-and-year citations, numbered references, “according to…” and “studies show”, and checks each against your materials. A source nobody supplied is one to check or cut.</p><span class="where net">Stays on your device</span></div></article>
+<article class="check" id="check-own"><div class="stage"><svg class="ill" viewBox="0 0 320 190" role="img" aria-label="A citation is looked up in your own CV, profile and letters first, found there, and never sent to a public index."><g aria-hidden="true">
+    <rect class="pane" x="12" y="52" width="122" height="70" rx="9"/>
+    <text class="tx b" x="24" y="76">Okafor, 2019</text><text class="tx s" x="24" y="94">“Mobile payments and</text><text class="tx s" x="24" y="106">informal merchants”</text>
+    <rect class="pane2" x="196" y="30" width="112" height="46" rx="8"/><text class="tx s c" x="252" y="50">Your CV, profile</text><text class="tx s c" x="252" y="66">and letters</text>
+    <rect class="pane2" x="196" y="104" width="112" height="46" rx="8" opacity=".45"/><text class="tx s c" x="252" y="124">Public indexes</text><text class="tx s c" x="252" y="140">not asked</text>
+    <path class="draw t8 line" pathLength="1" d="M134 87 C165 87 165 53 196 53"/>
+    <g class="pop t36"><rect class="okbg" x="26" y="134" width="100" height="26" rx="13"/><text class="tx c oktx" x="76" y="151.5">✓ Found, no request</text></g></g></svg></div><div class="words"><span class="name">Own materials</span><h3>Is this one of my own papers?</h3><p>Put your CV, profile and letters ahead of the public indexes, and a citation they list is confirmed from them. No request is made, and your own work is never sent out to be checked.</p><span class="where net">Stays on your device</span></div></article>
+<article class="check" id="check-draft"><div class="stage"><svg class="ill" viewBox="0 0 320 190" role="img" aria-label="A draft is held to figures, names, references and claims at once, and everything the materials do not back is listed."><g aria-hidden="true">
+    <rect class="pane" x="12" y="12" width="132" height="166" rx="9"/><text class="tx s c" x="78" y="30">Your draft</text>
+    <text class="tx s" x="24" y="54">Led a large team of 50</text><text class="tx s" x="24" y="72">at Acme Capital, as</text><text class="tx s" x="24" y="90">studies show.</text>
+    <rect class="pane2" x="168" y="12" width="140" height="166" rx="9"/><text class="tx s c" x="238" y="30">Not backed by materials</text>
+    <g class="pop t14"><rect class="badbg" x="178" y="40" width="124" height="26" rx="13"/><text class="tx c badtx" x="240" y="57.5">✕ figure 50</text></g><g class="pop t30"><rect class="badbg" x="178" y="76" width="124" height="26" rx="13"/><text class="tx c badtx" x="240" y="93.5">✕ name Acme</text></g><g class="pop t46"><rect class="badbg" x="178" y="112" width="124" height="26" rx="13"/><text class="tx c badtx" x="240" y="129.5">✕ claim large</text></g><g class="pop t62"><rect class="badbg" x="178" y="148" width="124" height="26" rx="13"/><text class="tx c badtx" x="240" y="165.5">✕ source studies</text></g>
+    <path class="draw t8 line" pathLength="1" d="M144 70 L168 70"/></g></svg></div><div class="words"><span class="name">Draft</span><h3>All of the above, at once.</h3><p>One call holds a draft to figures, names, references and claims, and lists everything your materials do not back. A citation that trips several checks is reported once.</p><span class="where net">Stays on your device</span></div></article>
 <article class="check" id="check-gate"><div class="stage"><svg class="ill" viewBox="0 0 320 190" role="img" aria-label="A claim backed only by press coverage tries to move up to the specialist tier, is held back, and is dropped."><g aria-hidden="true">
     <rect class="pane2" x="14" y="14" width="176" height="26" rx="7"/><text class="tx" x="26" y="31">0 · your own data</text><rect class="pane2" x="14" y="46" width="176" height="26" rx="7"/><text class="tx" x="26" y="63">1 · an authority</text><rect class="pane2" x="14" y="78" width="176" height="26" rx="7"/><text class="tx" x="26" y="95">2 · a specialist</text><rect class="pane" x="14" y="110" width="176" height="26" rx="7"/><text class="tx b" x="26" y="127">3 · the press</text><rect class="pane" x="14" y="142" width="176" height="26" rx="7"/><text class="tx" x="26" y="159">4 · an aggregator</text>
     <rect class="zone" x="9" y="9" width="186" height="100" rx="11"/>
@@ -133,7 +181,7 @@
 </div></section>
 <section class="band"><div class="col">
 <h2>Where AI goes wrong</h2>
-<p class="sub">The last four are real runs: Assay checked the text described, when this page was built. Open “Show the code” to see the call.</p>
+<p class="sub">The last seven are real runs: Assay checked the text described, when this page was built. Open “Show the code” to see the call.</p>
 <div class="cards">
 <article class="card"><h3>A paper that does not exist</h3><p class="what">Asked for sources, AI models write convincing ones: a real author with a title they never wrote, or a link that goes to a different paper. In a test of free models, some citations were invented outright.</p><div class="out plain"><strong>What Assay does</strong><p>It looks each citation up in public records of papers and books, and says found, look again, or not found. If a record service is down, it says it could not look. It never calls that “not found”.</p></div></article>
 <article class="card" id="ex-quotes"><h3>A quote nobody wrote</h3><p class="what">You asked for an exact quote from a job posting. The AI wrote “Relocation is available for all staff.” The posting says relocation is for senior staff only.</p><div class="out bad"><strong>Assay says</strong><p>The quote is not in the source text. It may be paraphrased or invented.</p></div><details><summary>Show the code</summary><pre><code>const posting = &quot;We offer visa sponsorship for this role. Relocation support is available for senior staff only.&quot;;
@@ -141,6 +189,15 @@ checkQuote(posting, 'Relocation is available for all staff');</code></pre><p cla
 <article class="card" id="ex-figures"><h3>A number from nowhere</h3><p class="what">Your draft says “5,000 beneficiaries”. The brief you gave the AI never mentions that number, but it does mention 40% and three districts.</p><div class="out bad"><strong>Assay says</strong><p>&quot;5,000&quot; does not appear in the materials you gave. Check it, or replace it with a blank.</p></div><details><summary>Show the code</summary><pre><code>const draft = &quot;We reached 5,000 beneficiaries, a 40% increase, across three districts.&quot;;
 const brief = &quot;Our programme worked in three districts, and attendance rose 40% on last year.&quot;;
 checkFigures(draft, [brief]);</code></pre><p class="imp">import … from '@extrafemi-ai/assay/figures'</p></details></article>
+<article class="card" id="ex-names"><h3>An employer nobody had</h3><p class="what">You gave the AI a CV. Its draft says you worked with the Greenfield Foundation and learned to scale at Acme Capital. Neither name is anywhere in the CV, and neither has a number, so a figures check passes them.</p><div class="out bad"><strong>Assay says</strong><p>Greenfield Foundation: This name is not in your materials. Check it exists and is yours to claim. Acme Capital: This name is not in your materials. Check it exists and is yours to claim.</p></div><details><summary>Show the code</summary><pre><code>const draft = &quot;We have worked with the Greenfield Foundation, and our earlier role at Acme Capital taught us to scale.&quot;;
+const materials = &quot;Ada Example founded a payments company in Lagos and managed a team of five at Oneremit Payments.&quot;;
+checkNames(draft, [materials]);</code></pre><p class="imp">import … from '@extrafemi-ai/assay/names'</p></details></article>
+<article class="card" id="ex-claims"><h3>A bigger claim than you made</h3><p class="what">Your CV says you managed a team of five. The draft says you led a large team. “Led” is backed by “managed”, and “large” is a word your CV never uses.</p><div class="out bad"><strong>Assay says</strong><p>&quot;large&quot;: This word makes the claim bigger, and your materials never use it.</p></div><details><summary>Show the code</summary><pre><code>const draft = &quot;Led a large team of engineers.&quot;;
+const materials = &quot;Managed a team of five engineers at a payments company.&quot;;
+checkClaims(draft, [materials]);</code></pre><p class="imp">import … from '@extrafemi-ai/assay/claims'</p></details></article>
+<article class="card" id="ex-references"><h3>A study from nowhere</h3><p class="what">The draft cites “Smith and Jones (2020)” and says “research shows” your point. Your materials name no such study, and nothing is in the bracketed form the citations check reads.</p><div class="out bad"><strong>Assay says</strong><p>Smith and Jones, 2020: A citation your materials do not contain. If it is real, add it to your materials; if you cannot find it, cut it. research shows: Appeals to unnamed research or experts. Nothing in your materials says this; cut it or give the source.</p></div><details><summary>Show the code</summary><pre><code>const draft = &quot;As the Smith and Jones (2020) study shows, research shows that informal traders drive growth.&quot;;
+const materials = &quot;We built a payments app for informal traders.&quot;;
+checkReferences(draft, [materials]);</code></pre><p class="imp">import … from '@extrafemi-ai/assay/references'</p></details></article>
 <article class="card" id="ex-grounding"><h3>A number tied to the wrong fact</h3><p class="what">The AI says the rate moved to ₦425 and tags the line as coming from a fact that says ₦645.19.</p><div class="out bad"><strong>Assay says</strong><p>States a figure that doesn't match c1's stated figure: possible mis-citation</p></div><details><summary>Show the code</summary><pre><code>const claims = [{ ref: 1, text: 'The official rate averaged ₦645.19 in 2023.' }];
 checkGrounding('The rate moved to ₦425 in 2023 [[c1]].', claims);</code></pre><p class="imp">import … from '@extrafemi-ai/assay/grounding'</p></details></article>
 <article class="card" id="ex-values"><h3>The right source, the wrong year</h3><p class="what">A draft says Nigerian remittances reached $25 billion in 2023. The World Bank figure for that year is about $19.5 billion.</p><div class="out bad"><strong>Assay says</strong><p>The claim says 25,000,000,000; World Bank says 19,549,549,365 for 2023. That is outside tolerance.</p></div><details><summary>Show the code</summary><pre><code>reconcile(

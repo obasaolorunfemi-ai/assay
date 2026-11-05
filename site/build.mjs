@@ -26,11 +26,16 @@ const slug = (s) => stripTags(s.toLowerCase()).replace(/[^a-z0-9]+/g, '-').repla
 /** A JavaScript string literal in single quotes, with backslashes and quotes escaped. */
 const jsq = (s) => `'${String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 
-/* ---------- the ten checks (what each compares with, and whether it touches the network) ---------- */
+/* ---------- the checks (what each compares with, and whether it touches the network) ---------- */
 const CHECKS = [
   ['Citations', 'public records of papers and books: CrossRef, OpenAlex, Open Library, the DOI registries', true, '.'],
   ['Quotes', 'the source text you supply: is this sentence really in it?', false, './quotes'],
   ['Figures', 'the materials you supply: does every number come from them?', false, './figures'],
+  ['Names', 'the materials you supply: is every person, organisation, link and DOI in the draft one they mention?', false, './names'],
+  ['Claims', 'the materials you supply: does the draft say something about the person (led, large, founded, a PhD, a tool) that they never say?', false, './claims'],
+  ['References', 'the materials you supply: does the draft lean on a source (an author and year, "according to…", "studies show") that they never mention?', false, './references'],
+  ['Own materials', "the person's own CV, profile and letters, as a place a citation can be found: no request is made", false, './own'],
+  ['Draft', 'all of the above and figures, in one call, for a draft held to every one of them', false, './draft'],
   ['Gate', 'a policy about sources: is each claim sourced well enough to be stated?', false, './gate'],
   ['Grounding', 'a list of approved claims: does every figure in a draft trace to one, and match it?', false, './grounding'],
   ['Values', "a source's own data (World Bank, IMF, Eurostat, Our World in Data, any statistics service you add, or figures you seeded): does the number match, for that year?", true, './values'],
@@ -40,9 +45,11 @@ const CHECKS = [
   ['Legal', 'CourtListener, US court decisions: is the case citation real, and is it that case? (server-side only)', true, './legal'],
 ];
 for (const [name, , , sub] of CHECKS) assert.ok(pkg.exports[sub], `${name}: package.json has no export "${sub}"`);
+const COUNT_WORD = ({ 10: 'Ten', 11: 'Eleven', 12: 'Twelve', 13: 'Thirteen', 14: 'Fourteen', 15: 'Fifteen', 16: 'Sixteen' })[CHECKS.length] ?? String(CHECKS.length);
 const importPath = (sub) => (sub === '.' ? pkg.name : `${pkg.name}/${sub.slice(2)}`);
 
 /* ---------- real output: each example runs the library and asserts what it expects, so a wrong claim fails the build ---------- */
+const N = await lib('names.js'), CL = await lib('claims.js'), R = await lib('references.js');
 const Q = await lib('quotes.js'), F = await lib('figures.js'), G = await lib('gate.js'), GR = await lib('grounding.js');
 const V = await lib('values.js'), L = await lib('liveness.js'), A = await lib('index.js');
 
@@ -55,6 +62,25 @@ const materialsF = 'Our programme worked in three districts, and attendance rose
 const fig = F.checkFigures(draftF, [materialsF]);
 const figBad = fig.verdicts.filter((v) => !v.supported);
 assert.equal(figBad.length, 1);
+
+const draftN = 'We have worked with the Greenfield Foundation, and our earlier role at Acme Capital taught us to scale.';
+const materialsN = 'Ada Example founded a payments company in Lagos and managed a team of five at Oneremit Payments.';
+const namesRep = N.checkNames(draftN, [materialsN]);
+const namesBad = namesRep.verdicts.filter((v) => !v.supported);
+assert.deepEqual(namesBad.map((v) => v.name), ['Greenfield Foundation', 'Acme Capital']);
+
+const draftC = 'Led a large team of engineers.';
+const materialsC = 'Managed a team of five engineers at a payments company.';
+const claimsRep = CL.checkClaims(draftC, [materialsC]);
+const claimsBad = claimsRep.verdicts.filter((v) => !v.supported);
+assert.deepEqual(claimsBad.map((v) => v.term), ['large']);
+assert.ok(claimsRep.verdicts.some((v) => v.term === 'led' && v.supported), '"led" is backed by "managed"');
+
+const draftR = 'As the Smith and Jones (2020) study shows, research shows that informal traders drive growth.';
+const materialsR = 'We built a payments app for informal traders.';
+const refsRep = R.checkReferences(draftR, [materialsR]);
+const refsBad = refsRep.verdicts.filter((v) => !v.supported);
+assert.equal(refsBad.length, 2);
 
 const gate = G.createGate({ rules: [G.rules.estimatesCausalLegalNeedSpecialist] });
 const gateRep = gate.check([{ text: 'Delays cost traders an estimated $400m.', category: 'loss-estimate', sources: [{ url: 'https://reuters.com/x', date: '2026-01-01' }] }]);
@@ -91,6 +117,24 @@ const EXAMPLES = [
     what: 'An invented "5,000 beneficiaries" reads as plausible. This finds every number and asks whether you supplied it.',
     code: `const draft = "${draftF}";\nconst brief = "${materialsF}";\ncheckFigures(draft, [brief]);`,
     out: { cls: 'bad', head: fig.summary.text, text: figBad.map((v) => v.message).join(' ') },
+  },
+  {
+    name: 'Names', against: 'the materials you supply', sub: './names', net: false,
+    what: 'An invented partner or employer has no digit, so a figures check passes it. This reads every name and asks whether your materials mention it.',
+    code: `const draft = "${draftN}";\nconst materials = "${materialsN}";\ncheckNames(draft, [materials]);`,
+    out: { cls: 'bad', head: namesRep.summary.text, text: namesBad.map((v) => `${v.name}: ${v.message}`).join(' ') },
+  },
+  {
+    name: 'Claims', against: 'the materials you supply', sub: './claims', net: false,
+    what: '"Led a large team" has no number and no name. Two words carry the claim, and this asks whether your materials make it.',
+    code: `const draft = "${draftC}";\nconst materials = "${materialsC}";\ncheckClaims(draft, [materials]);`,
+    out: { cls: 'bad', head: claimsRep.summary.text, text: claimsBad.map((v) => `"${v.term}": ${v.message}`).join(' ') },
+  },
+  {
+    name: 'References', against: 'the materials you supply', sub: './references', net: false,
+    what: 'Models cite without being asked, in forms the bracketed citation check never reads. This finds them and asks whether your materials mention each.',
+    code: `const draft = "${draftR}";\nconst materials = "${materialsR}";\ncheckReferences(draft, [materials]);`,
+    out: { cls: 'bad', head: refsRep.summary.text, text: refsBad.map((v) => `${v.source}: ${v.message}`).join(' ') },
   },
   {
     name: 'Gate', against: 'a policy about sources', sub: './gate', net: false,
@@ -257,7 +301,7 @@ const SEO = {
   '/try/': { title: 'Try the checks in your browser · Assay', desc: 'Check a quote against its source, a draft’s numbers against your materials, or tagged lines against approved facts. Nothing leaves your browser.', crumb: 'Try it', type: 'WebPage' },
   '/start/': { title: 'Get started with Assay: install and run a check', desc: 'Install @extrafemi-ai/assay and run the check that fits: citations, quotes, figures, sourcing or grounding. Short recipes for each, in TypeScript.', crumb: 'Get started', type: 'TechArticle' },
   '/evidence/': { title: 'What counts as evidence: Assay’s sources and rules', desc: 'Exactly what Assay counts as evidence, why, and which sources it uses for each check, with every source’s self-test and limits, and how to add your own.', crumb: 'Evidence', type: 'TechArticle' },
-  '/checks/': { title: 'Assay reference: every check, option and message', desc: 'Reference for all ten Assay checks: citations, quotes, figures, gate, grounding, values, links, support, retractions and legal, with options and statuses.', crumb: 'Reference', type: 'TechArticle' },
+  '/checks/': { title: 'Assay reference: every check, option and message', desc: 'Reference for all fifteen Assay checks, with options, statuses and messages: citations, quotes, figures, names, claims, references, draft, values and more.', crumb: 'Reference', type: 'TechArticle' },
   '/paper/': { title: 'Technical paper: checking AI-written text against evidence', desc: 'Technical report by Obasa Olorunfemi and Precious Olusegun (Extrafemi Research): design, self-healing, security, evaluation and limits of Assay.', crumb: 'Paper', type: 'ScholarlyArticle' },
   '/self-healing/': { title: 'How Assay keeps checking when its sources fail', desc: 'How Assay’s citation and value checks survive throttled, changed or unavailable sources without accusing real work: breakers, self-tests and stale answers.', crumb: 'Self-healing', type: 'TechArticle' },
   '/limits/': { title: 'What Assay cannot do: limits and privacy · Assay', desc: 'Where Assay falls short: it shows a source exists, not that it says what a sentence claims. Coverage gaps, what it sends, and what it never sees.', crumb: 'Limits', type: 'TechArticle' },
@@ -340,6 +384,11 @@ const CHECK_CARDS = [
   ['citations', 'Citations', 'Is this paper real?', 'Assay looks each citation up in public records of papers and books, and says found, look again, or not found. It also checks that the link points to that paper.', 'Looks it up online'],
   ['quotes', 'Quotes', 'Is this quote really in the source?', 'It searches your source text for the exact sentence. It forgives curly quotes, dashes and capital letters, never different words.', 'Stays on your device'],
   ['figures', 'Figures', 'Did I make up a number?', 'It finds every number in the draft and checks that you supplied the same number in your own materials. “three” matches 3.', 'Stays on your device'],
+  ['names', 'Names', 'Did it invent a partner or an employer?', 'It reads every name and acronym in the draft and checks that each word of it is in your own materials. It also checks links, DOIs and email addresses.', 'Stays on your device'],
+  ['claims', 'Claims', 'Does it claim more than you said?', '“Led a large team” has no number and no name. Assay checks that your materials use a word like “led”, and the word “large”, and says which they never do.', 'Stays on your device'],
+  ['references', 'References', 'Did it lean on a source you never gave?', 'It reads author-and-year citations, numbered references, “according to…” and “studies show”, and checks each against your materials. A source nobody supplied is one to check or cut.', 'Stays on your device'],
+  ['own', 'Own materials', 'Is this one of my own papers?', 'Put your CV, profile and letters ahead of the public indexes, and a citation they list is confirmed from them. No request is made, and your own work is never sent out to be checked.', 'Stays on your device'],
+  ['draft', 'Draft', 'All of the above, at once.', 'One call holds a draft to figures, names, references and claims, and lists everything your materials do not back. A citation that trips several checks is reported once.', 'Stays on your device'],
   ['gate', 'Gate', 'Is this claim sourced well enough to say?', 'Sources are ranked from your own data down to news aggregators. Some claims, like a loss estimate, need a specialist source. With only press coverage behind it, the gate drops the claim.', 'Stays on your device'],
   ['grounding', 'Grounding', 'Does every number trace to a fact I approved?', 'Each line carries a tag naming the approved fact it came from. Assay checks that the fact exists and that the line states the same figure.', 'Stays on your device'],
   ['values', 'Values', 'Is this figure right for that year?', 'It asks the source’s own data, such as the World Bank, the IMF, Eurostat or Our World in Data, or figures read off a central bank’s bulletin, for that exact year and unit. A nearby year never counts as a match.', 'Looks it up online'],
@@ -359,7 +408,7 @@ const home = `<main id="main">
 <p class="tag">The checks that use your own text run in your browser and send nothing anywhere.</p>
 </section>
 <section class="band" id="checks"><div class="col">
-<div class="sec-head"><div><h2>Ten checks, each for one job</h2>
+<div class="sec-head"><div><h2>${COUNT_WORD} checks, each for one job</h2>
 <p class="sub">They answer different questions, so each is its own check with its own import. Use the one that fits; they are not meant to run all at once. Each picture loops to show what the check does.</p></div>
 <button type="button" class="pill" id="motion" aria-pressed="false">Pause animations</button></div>
 <div class="checks">
@@ -369,11 +418,14 @@ ${CHECK_CARDS.map(([key, name, q, text, net]) => `<article class="check" id="che
 </div></section>
 <section class="band"><div class="col">
 <h2>Where AI goes wrong</h2>
-<p class="sub">The last four are real runs: Assay checked the text described, when this page was built. Open “Show the code” to see the call.</p>
+<p class="sub">The last seven are real runs: Assay checked the text described, when this page was built. Open “Show the code” to see the call.</p>
 <div class="cards">
 <article class="card"><h3>A paper that does not exist</h3><p class="what">Asked for sources, AI models write convincing ones: a real author with a title they never wrote, or a link that goes to a different paper. In a test of free models, some citations were invented outright.</p><div class="out plain"><strong>What Assay does</strong><p>It looks each citation up in public records of papers and books, and says found, look again, or not found. If a record service is down, it says it could not look. It never calls that “not found”.</p></div></article>
 ${story(ex('Quotes'), 'A quote nobody wrote', `You asked for an exact quote from a job posting. The AI wrote “Relocation is available for all staff.” The posting says relocation is for senior staff only.`)}
 ${story(ex('Figures'), 'A number from nowhere', `Your draft says “5,000 beneficiaries”. The brief you gave the AI never mentions that number, but it does mention 40% and three districts.`)}
+${story(ex('Names'), 'An employer nobody had', `You gave the AI a CV. Its draft says you worked with the Greenfield Foundation and learned to scale at Acme Capital. Neither name is anywhere in the CV, and neither has a number, so a figures check passes them.`)}
+${story(ex('Claims'), 'A bigger claim than you made', `Your CV says you managed a team of five. The draft says you led a large team. “Led” is backed by “managed”, and “large” is a word your CV never uses.`)}
+${story(ex('References'), 'A study from nowhere', `The draft cites “Smith and Jones (2020)” and says “research shows” your point. Your materials name no such study, and nothing is in the bracketed form the citations check reads.`)}
 ${story(ex('Grounding'), 'A number tied to the wrong fact', `The AI says the rate moved to ₦425 and tags the line as coming from a fact that says ₦645.19.`)}
 ${story(ex('Values'), 'The right source, the wrong year', `A draft says Nigerian remittances reached $25 billion in 2023. The World Bank figure for that year is about $19.5 billion.`)}
 </div>
@@ -433,7 +485,7 @@ const checkSections = CHECKS.map(([n]) => {
   return `<h2 id="${slug(n)}">${n}</h2>\n${md(body, { minLevel: 2 })}`;
 }).join('\n');
 const toc = `<ul class="toc">${CHECKS.map(([n]) => `<li><a href="#${slug(n)}">${n}</a></li>`).join('')}</ul>`;
-const checksPage = doc('Reference', 'Every check, with its options, statuses and messages. Ten separate checks: each compares the text with a different thing, so each has its own entry point.', `${toc}${md(checksOverview.split('\n').filter((l) => l.startsWith('|')).join('\n'))}${checkSections}`);
+const checksPage = doc('Reference', `Every check, with its options, statuses and messages. ${COUNT_WORD} separate checks: each compares the text with a different thing, so each has its own entry point.`, `${toc}${md(checksOverview.split('\n').filter((l) => l.startsWith('|')).join('\n'))}${checkSections}`);
 
 const healPage = doc('Self-healing', 'How the citation and value checks keep working when the free sources they rely on do not.', md(readme.split('### Self-healing\n')[1].split('\n## ')[0].trim(), { minLevel: 2 }), 'how it keeps working');
 const limitsPage = doc('What it cannot do', 'Read this before you trust a green tick.', `${md(section(readme, 'What it cannot do').replace(/^Read this before you trust a green tick\.\n*/, ''))}<h2 id="privacy">Privacy</h2>${md(section(readme, 'Privacy'))}`, 'what it cannot do');
