@@ -7,6 +7,7 @@ import { caseNameBefore, sameCase } from '../src/legal.js';
 import { doisIn } from '../src/retractions.js';
 import { feedbackFrom } from '../src/loop.js';
 import { renderReview } from '../src/review.js';
+import { checkAttributions, buildCorpus, normalizeUrl, extractUrls, enforceProvenance, splitSourceSection, buildSourceList, approvedUrls, stripUnapprovedLinks, markLines } from '../src/entry.js';
 import { checkClaims, checkDraft, ownWorks, checkFigures, checkGrounding, checkNames, checkReferences, checkQuote, createGate, doiFromUrl, evalFormula, extractFigures, extractTypedNumbers, isSafeAddress, linkKind, nameKey, parseCitations, splitAuthors, strip, stripTags, summariseRecency, titleSimilarity, worldBankUrlInfo } from '../src/entry.js';
 
 const N = 30_000;
@@ -24,6 +25,10 @@ const targets: Record<string, (t: string) => unknown> = {
   gate: (t) => createGate().check([{ text: t, category: t, sources: [{ url: t, date: t }] }]), recency: (t) => summariseRecency([{ url: t, date: t }]), worldBankUrlInfo: (t) => worldBankUrlInfo(t),
   caseNameBefore: (t) => caseNameBefore(t, t.length), sameCase: (t) => sameCase(t, t + ' x'), doisIn: (t) => doisIn(t), feedbackFrom: (t) => feedbackFrom([t]),
   renderReview: (t) => renderReview([{ name: t, summary: t, items: [{ bucket: 'failed', title: t, message: t }] }]),
+  checkAttributions: (t) => checkAttributions(t, { corpus: t }), checkAttributionsOther: (t) => checkAttributions(t, { corpus: 'World Bank. Governor Cardoso said the position was stable.' }), buildCorpus: (t) => buildCorpus({ claims: [{ text: t, sources: [{ url: t, publisher: t }] }], texts: [t] }),
+  normalizeUrl: (t) => normalizeUrl(t), extractUrls: (t) => extractUrls(t), enforceProvenance: (t) => enforceProvenance([{ text: t, sources: [{ url: t }] }], t),
+  splitSourceSection: (t) => splitSourceSection(t), buildSourceList: (t) => buildSourceList([{ ref: 1, sources: [{ url: t, publisher: t }] }], [1]), approvedUrls: (t) => approvedUrls([{ sources: [{ url: t }] }], t),
+  stripUnapprovedLinks: (t) => stripUnapprovedLinks(t, new Set(['a.org/x'])), markLines: (t) => markLines(t, [t.slice(0, 200)]),
   isSafeAddress: (t) => isSafeAddress(t), strip: (t) => strip(t, { verdicts: [{ citation: cit(t), bucket: 'failed' } as never], summary: {} as never, ok: false }),
 };
 

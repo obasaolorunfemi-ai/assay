@@ -2,6 +2,17 @@
 
 Versions before 1.0 may change between minor releases; each change that could break a caller is marked **breaking**.
 
+## 0.7.0
+
+Three checks for the part of a draft the figures check cannot see: where its sources came from. Built from what Inkstone had to add after a draft cited a CV nobody could find.
+
+- **`/provenance`**: `enforceProvenance(claims, ...knownTexts)`. A claim's source link must be one the research produced (it is in the text the model was shown). A link a model wrote from memory is removed, and a claim left with no source is dropped. Reachability cannot do this: a link on a real site that answers 200 for any path, or refuses a robot, passes the link check. Also `normalizeUrl` (scheme, `www`, fragment, trailing slash and tracking parameters ignored), `extractUrls`, `hostOf`.
+- **`/sourcelist`**: `splitSourceSection` discards the Sources / References / Further reading section the model wrote, `buildSourceList` builds the real one from the claims the draft cites (links with tiers, or a short plain list), `approvedUrls` and `stripUnapprovedLinks` remove links nobody approved (the anchor text stays; your own domains can be allowed), `markLines` puts a visible `[verify: …]` on lines that are still unsupported, `problemsForPrompt` lists them for a redraft.
+- **`/attributions`**: `checkAttributions(draft, { corpus })`. Every line, headings and bullets included, that names a CV, résumé, profile or biography (`personal-record`), a study, survey or filing (`document-untagged`), an attribution (`attribution-untagged`, `attribution-unknown`), a quote of three words or more (`quote-unbacked`) or a titled person (`person-unknown`) must carry a claim tag and be traceable to the approved material. `buildCorpus` assembles that material from the claims, their publishers and any text the draft may draw on. The tag syntax is the one `grounding` uses. Bounded and cut to safe line lengths, so a hostile draft cannot make it slow.
+- **`/grounding`** exports `tagPatterns(tags)`, the tag patterns for one tag format, for checks that read the same tags.
+- **Fixed: a host that drops or stalls a `HEAD` request is no longer called `unreachable`.** `data.worldbank.org` times out on `HEAD` while `GET` answers in half a second. A `HEAD` that failed at the network level is now asked again as a `GET` first. A host that fails both is still `unreachable`.
+- Internal: the word-matching helpers `names` uses moved to a shared module (`words.ts`); `names` behaves as before.
+
 ## 0.6.0
 
 - **`/own`**: `ownMaterials(texts)` is a citation source that finds works in a person's own CV, profile and letters and answers with no request, so their own publications are confirmed locally (and never sent to a public index). Put it before `defaultSources`.

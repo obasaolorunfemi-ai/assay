@@ -18,6 +18,9 @@ import * as claims from '@extrafemi-ai/assay/claims';
 import * as references from '@extrafemi-ai/assay/references';
 import * as draft from '@extrafemi-ai/assay/draft';
 import * as own from '@extrafemi-ai/assay/own';
+import * as provenance from '@extrafemi-ai/assay/provenance';
+import * as sourcelist from '@extrafemi-ai/assay/sourcelist';
+import * as attributions from '@extrafemi-ai/assay/attributions';
 
 const need = (cond, msg) => { if (!cond) { console.error('SMOKE FAILED:', msg); process.exit(1); } };
 
@@ -35,6 +38,11 @@ need(typeof claims.checkClaims === 'function' && claims.findUnsupportedClaims('L
 need(typeof references.checkReferences === 'function' && references.findUnsupportedReferences('Studies show this works.', 'We built an app.').length === 1, 'references flags an unnamed appeal');
 need(typeof draft.checkDraft === 'function' && draft.checkDraft('We reached 5,000 people at Acme Capital.', 'We built an app.').findings.length >= 2, 'draft holds a draft to figures and names');
 need(typeof own.ownMaterials === 'function' && own.ownWorks('Okafor, A. & Bello, B. (2019). Mobile payments and informal merchants in Lagos. Journal of African Finance.').length === 1, 'own reads a reference line');
+
+need(typeof provenance.enforceProvenance === 'function' && provenance.enforceProvenance([{ text: 'x', sources: [{ url: 'https://a.org/made-up' }] }], 'findings: https://b.org/real').dropped.length === 1, 'provenance drops a claim whose link was not in the research');
+need(typeof sourcelist.buildSourceList === 'function' && sourcelist.splitSourceSection('Text.\n\n## Sources\n- Invented CV').body === 'Text.', 'sourcelist discards the model-written Sources section');
+need(typeof attributions.checkAttributions === 'function' && attributions.checkAttributions("According to Dr. Obi's CV, she ran the desk.", { corpus: 'World Bank. Remittances rose.' }).ok === false, 'attributions flags an invented CV');
+need(attributions.checkAttributions('Remittances rose [[c1]].', { corpus: 'Remittances rose.' }).ok === true, 'attributions passes a tagged, backed line');
 
 need(typeof figures.checkFigures === 'function' && typeof figures.evalFormula === 'function' && typeof figures.extractFigures === 'function', 'figures exports');
 need(figures.checkFigures('We reached 5,000 people.', 'We trained 40 women.').ok === false, 'checkFigures flags an invented figure');

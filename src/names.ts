@@ -9,6 +9,7 @@
 import type { Bucket, Summary } from './types.js';
 import { summarizeBuckets } from './summary.js';
 import { scopedSentences, type About } from './scope.js';
+import { TOKEN, cleanWord as clean, wordIndex } from './words.js';
 
 export interface NameOptions {
   /** Capitalised words that are never names in your text (a greeting, your own jargon). Added to the built-in list; compared in lower case. */
@@ -54,7 +55,6 @@ const verbLike = (w: string) => /(?:ed|ing|ly)$/i.test(w) || IRREGULAR_VERBS.has
 const CONNECT = new Set(['of', 'de', 'da', 'del', 'van', 'von', 'bin', 'al', 'the', 'for']);
 const SPLIT = new Set(['and', '&']);
 
-const TOKEN = /[\p{L}\p{N}][\p{L}\p{N}'’-]*|&/gu;
 // Bounded on purpose: an unbounded `[\w.+-]+@` is quadratic on a long run of word characters (see test/redos.test.ts).
 const LINK = /(?:https?:\/\/|www\.)[^\s<>"')\]]{1,2000}|\b10\.\d{4,9}\/[^\s<>"')\]]{1,2000}|[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63}){1,8}/gi;
 
@@ -63,31 +63,10 @@ const ORG_AFTER = /(?<![\p{L}\p{N}'’-])([\p{L}][\p{L}'’-]{1,30})\s+(foundati
 /** Ordinary words that often come before those markers without being a name ("development bank", "research institute"). */
 const MODIFIERS = new Set('development investment commercial central national international global local regional research private public social community retail merchant digital mobile online sovereign venture state federal city county world european african asian american state-owned islamic investment microfinance savings reserve'.split(' '));
 
-const clean = (w: string) => w.replace(/['’]s$/i, '').replace(/^['’-]+|['’-]+$/g, '');
 const isCap = (w: string) => /^\p{Lu}/u.test(w);
 const isAcronym = (w: string) => /^\p{Lu}[\p{Lu}\p{N}-]+$/u.test(clean(w));
 const canonLink = (l: string) => l.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/[.,;:!?)\]]+$/, '').replace(/\/+$/, '');
 const trimLink = (l: string) => l.replace(/[.,;:!?)\]]+$/, '');
-
-/** The same word, allowing a plural or a short ending: "Nigeria" and "Nigerian", "founder" and "founders". */
-function sameWord(a: string, b: string): boolean {
-  if (a === b) return true;
-  const [s, l] = a.length <= b.length ? [a, b] : [b, a];
-  return s.length >= 5 && l.startsWith(s) && l.length - s.length <= 3;
-}
-
-/** The set of words in some text, with an index by first five letters so "is this word (or a close form) there?" stays fast on long materials. */
-function wordIndex(text: string) {
-  const exact = new Set<string>();
-  const byPrefix = new Map<string, string[]>();
-  for (const m of text.matchAll(TOKEN)) {
-    const w = clean(m[0]).toLowerCase();
-    if (!w || exact.has(w)) continue;
-    exact.add(w);
-    if (w.length >= 5) { const k = w.slice(0, 5); const list = byPrefix.get(k); if (list) list.push(w); else byPrefix.set(k, [w]); }
-  }
-  return (w: string) => exact.has(w) || (w.length >= 5 && (byPrefix.get(w.slice(0, 5)) ?? []).some((k) => sameWord(k, w)));
-}
 
 /** Capitalised runs in one sentence, as lists of their words. */
 function runsIn(sentence: string, stop: Set<string>): string[][] {
