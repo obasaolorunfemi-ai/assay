@@ -14,3 +14,6 @@ export { checkGrounding, stripTags } from './grounding.js';
 export { createGate, summariseRecency } from './gate.js';
 export { worldBankUrlInfo } from './values.js';
 export { isSafeAddress } from './netguard.js';
+export { normalizeUrl, extractUrls, enforceProvenance } from './provenance.js';
+export { splitSourceSection, buildSourceList, approvedUrls, stripUnapprovedLinks, markLines, problemsForPrompt } from './sourcelist.js';
+export { checkAttributions, buildCorpus } from './attributions.js';

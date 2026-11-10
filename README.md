@@ -13,6 +13,9 @@ entry point, and you use only the ones your scenario needs.
 | **names** | the materials you supply: is every person, organisation, link and DOI in a draft one of theirs? | **no** | `@extrafemi-ai/assay/names` |
 | **claims** | the materials you supply: does the draft say something about the person (led, large, founded, PhD, a tool) that the materials never say? | **no** | `@extrafemi-ai/assay/claims` |
 | **references** | the materials you supply: does the draft lean on a source (an author and year, "according to…", "studies show") that the materials never mention? | **no** | `@extrafemi-ai/assay/references` |
+| **provenance** | the text a model was shown: is each source link on a claim one the research actually produced? | **no** | `@extrafemi-ai/assay/provenance` |
+| **sourcelist** | your approved claims: the draft's Sources section built from the claims it cites (the model's own discarded), links nobody approved removed, unsupported lines marked | **no** | `@extrafemi-ai/assay/sourcelist` |
+| **attributions** | the approved claims, line by line: does every line that names a CV, study, quote, "according to…" or titled person have a claim behind it? | **no** | `@extrafemi-ai/assay/attributions` |
 | **own** | the person's own CV, profile and letters, as a place a citation can be found (a citation source; no request) | **no** | `@extrafemi-ai/assay/own` |
 | **draft** | all of the above and figures, in one call | **no** | `@extrafemi-ai/assay/draft` |
 | **gate** | a policy about sources: is each claim sourced well enough to be stated? | **no** | `@extrafemi-ai/assay/gate` |
@@ -273,7 +276,7 @@ that answers "public" to a check and "private" to the connection is refused); ev
 `.internal` or single-label names, and only public IP addresses (including every IPv6 way of writing a private IPv4 one). `checkUrl()` and `isSafeAddress()` are exported if you want the rules on their own.
 
 Bounded: 5 seconds per request, 5 redirects, 2 requests at a time to any one host, 25 URLs per call, and only the first 24,000 characters of a page are ever read. A host that fails repeatedly, or sends
-`Retry-After`, is left alone for a while. The default `User-Agent` says what this is; some publishers block anything that is not a browser, which comes back as `blocked`.
+`Retry-After`, is left alone for a while. A host that drops or stalls a `HEAD` request is asked again with `GET` before the link is called `unreachable`. The default `User-Agent` says what this is; some publishers block anything that is not a browser, which comes back as `blocked`.
 
 ## Quotes
 
@@ -395,6 +398,40 @@ A citation that trips several checks ("(Okafor, 2019)" is a reference, a name an
 ```ts
 checkDraft(advice, [cv, rubric], { about: 'you' });
 ```
+
+## Draft sources
+
+A model that writes from approved claims can still invent the *sources*: a link it was never given, a CV nobody wrote, a study, a quote, a person with a title. Nothing downstream looks at
+the "Sources" list it adds at the end, and a number-only check does not read a sentence with no number in it. These three checks close that, in the order a pipeline runs them. All offline.
+
+```ts
+import { enforceProvenance } from '@extrafemi-ai/assay/provenance';
+import { splitSourceSection, approvedUrls, stripUnapprovedLinks, markLines, buildSourceList, problemsForPrompt } from '@extrafemi-ai/assay/sourcelist';
+import { checkAttributions, buildCorpus } from '@extrafemi-ai/assay/attributions';
+
+// 1. The claims the model returned: keep only the sources the research really produced.
+const { kept, dropped, removed } = enforceProvenance(claims, findingsText, pastedData);
+
+// 2. The draft: discard the model's own Sources list, remove links nobody approved, then read every line.
+const { body, hadSection } = splitSourceSection(draft);
+const clean = stripUnapprovedLinks(body, approvedUrls(kept, pastedData), ['yourdomain.com']);
+const report = checkAttributions(clean.body, { corpus: buildCorpus({ claims: kept, texts: [pastedData, topic] }) });
+report.violations;   // [{ kind: 'source', code: 'personal-record', line, reason }, …]
+
+// 3. Ask the model once more with problemsForPrompt(report.violations); mark what is still unsupported; build the list the reader sees.
+const marked = markLines(clean.body, report.violations.map((v) => v.line));
+const sources = buildSourceList(kept, grounding.refsUsed);
+```
+
+- **provenance** checks where a link *came from*: it must appear in the text the model was shown. A link on a real site that happens to answer 200, or that refuses a robot, still passes the
+  link check, so reachability alone says nothing. A claim left with no source is dropped. It does not check that the page says what the claim says.
+- **sourcelist** takes the Sources section away from the model and builds the real one from the claims the draft cites (as links with tiers, or a short plain list for a post). `stripUnapprovedLinks`
+  keeps the anchor text of a link it removes. Your own domains can be allowed. `markLines` puts a visible `[verify: …]` on a line, once, so it cannot reach a reader unmarked.
+- **attributions** reads every line, headings and bullets included. Codes: `personal-record` (a CV, résumé, profile or biography: never a source for an article), `document-untagged` (a study, survey,
+  filing or white paper with no claim tag), `attribution-untagged` and `attribution-unknown` ("according to X", "X said": needs a tag, and X must be in the approved material), `quote-unbacked`
+  (three words or more, word for word in the approved material), `person-unknown` (a titled person who is not in it). The tag syntax is the same parameter as in `grounding`. A line carrying `[verify: …]` is skipped on purpose.
+
+It checks that a source is *traceable* to your material, not that the claim is true; a real person the writer never put in the material is flagged, which is the point. It reads capitalised words, so a name written in lower case is not caught.
 
 ## Support
 

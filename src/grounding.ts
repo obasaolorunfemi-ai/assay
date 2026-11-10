@@ -88,6 +88,13 @@ function compile(fmt: TagFormat, extraUnits: string[]) {
   };
 }
 
+/** The patterns for one tag format, as fresh regexes, for other checks that read the same tags (see `attributions`). `any` is global (use it with `replace`); the rest are not (use them with `test`). */
+export function tagPatterns(tags: Partial<TagFormat> = {}) {
+  const re = compile({ ...defaultTagFormat, ...tags }, []);
+  const plain = (r: RegExp) => new RegExp(r.source, r.flags.replace('g', ''));
+  return { claim: plain(re.claimTag), calc: plain(re.calcTag), verify: plain(re.verify), any: new RegExp(re.anyTag.source, 'g') };
+}
+
 /** Checks a draft (Markdown) against the claims that were approved for it. Everything under a "## Sources" heading is left out. Never throws. */
 export function checkGrounding(draft: string, claims: GroundingClaim[], opts: GroundingOptions = {}): GroundingReport {
   const fmt: TagFormat = { ...defaultTagFormat, ...opts.tags };

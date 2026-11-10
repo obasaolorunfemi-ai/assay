@@ -171,6 +171,8 @@ export function createLinkChecker(opts: LinkOptions = {}): LinkChecker {
       const host = d.host;
       if (!health.allow(host)) return verdict(raw, 'unreachable', `${host} is being given time to recover, so it was not asked just now.`, { hops });
       let res = await overall(() => perHost(host)(() => hopRetry(d.url, 'HEAD')));
+      // Some hosts stall or drop a HEAD while a GET answers at once (data.worldbank.org). A HEAD that failed at the network level is asked again as a GET before the link is called unreachable.
+      if (res.kind === 'network') res = await overall(() => perHost(host)(() => hop(d.url, 'GET')));
       // Some hosts answer HEAD wrongly or refuse it: a non-OK HEAD is confirmed with GET before any conclusion is drawn. A throttled host (429, 503) is not asked again.
       if (res.kind === 'response' && res.status >= 400 && res.status !== 429 && res.status !== 503) res = await overall(() => perHost(host)(() => hopRetry(d.url, 'GET')));
       else if (res.kind === 'response' && res.status >= 200 && res.status < 300 && opts.checkTitles) res = await overall(() => perHost(host)(() => hopRetry(d.url, 'GET')));

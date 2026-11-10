@@ -1,6 +1,6 @@
 {
   "name": "@extrafemi-ai/assay",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Checks AI-written text against evidence: citations against CrossRef, OpenAlex and the DOI registries; quotes against their source text; figures against the materials you supplied. Each check says what it checked against, in plain words.",
   "license": "MIT",
   "repository": {
@@ -39,6 +39,18 @@
     "./references": {
       "types": "./dist/references.d.ts",
       "import": "./dist/references.js"
+    },
+    "./provenance": {
+      "types": "./dist/provenance.d.ts",
+      "import": "./dist/provenance.js"
+    },
+    "./sourcelist": {
+      "types": "./dist/sourcelist.d.ts",
+      "import": "./dist/sourcelist.js"
+    },
+    "./attributions": {
+      "types": "./dist/attributions.d.ts",
+      "import": "./dist/attributions.js"
     },
     "./draft": {
       "types": "./dist/draft.d.ts",

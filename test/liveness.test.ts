@@ -106,6 +106,19 @@ describe('what a live server says', () => {
     expect(v.message).toMatch(/says nothing about whether the page exists/);
   });
 
+  it('a host that drops HEAD but answers GET is "live", not "unreachable"', async () => {
+    const s = await serve((q, r) => { if (q.method === 'HEAD') return q.socket.destroy(); r.setHeader('content-type', 'text/html'); r.end('<title>Indicator</title>'); });
+    const v = await checker().checkOne(`${s.base}/indicator`);
+    expect(v).toMatchObject({ status: 'live', bucket: 'ok' });
+    expect(s.hit.methods.some((m) => m.startsWith('GET'))).toBe(true);
+  });
+
+  it('is still "unreachable" when the GET fails too', async () => {
+    const s = await serve((q) => q.socket.destroy());
+    const v = await checker().checkOne(`${s.base}/x`);
+    expect(v).toMatchObject({ status: 'unreachable', bucket: 'check', retryable: true });
+  });
+
   it('a server that never answers is "unreachable" after the time limit', async () => {
     const s = await serve(() => { /* never responds */ });
     const t = Date.now();
