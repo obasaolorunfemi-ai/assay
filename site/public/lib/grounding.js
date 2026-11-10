@@ -24,6 +24,12 @@ function compile(fmt, extraUnits) {
         figure: new RegExp(`${FIGURE_RE.source}|\\b\\d{1,3}\\s?(?:${units})\\b|\\b(?:${NUMBER_WORDS})\\s+(?:${units})\\b`, 'i'),
     };
 }
+/** The patterns for one tag format, as fresh regexes, for other checks that read the same tags (see `attributions`). `any` is global (use it with `replace`); the rest are not (use them with `test`). */
+export function tagPatterns(tags = {}) {
+    const re = compile({ ...defaultTagFormat, ...tags }, []);
+    const plain = (r) => new RegExp(r.source, r.flags.replace('g', ''));
+    return { claim: plain(re.claimTag), calc: plain(re.calcTag), verify: plain(re.verify), any: new RegExp(re.anyTag.source, 'g') };
+}
 /** Checks a draft (Markdown) against the claims that were approved for it. Everything under a "## Sources" heading is left out. Never throws. */
 export function checkGrounding(draft, claims, opts = {}) {
     const fmt = { ...defaultTagFormat, ...opts.tags };
