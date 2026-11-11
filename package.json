@@ -134,7 +134,7 @@
     "legal:live": "npm run build && node scripts/legal-live.mjs"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^26.6.6",
     "typescript": "^5.6.0",
     "vitest": "^4.1.12"
   },
